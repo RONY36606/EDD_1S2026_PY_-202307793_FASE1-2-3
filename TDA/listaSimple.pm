@@ -9,9 +9,9 @@ sub new{
     my $self = {
         head => undef,
         size => 0,
-    }
+    };
 
-    return bless $class, $self;
+    return bless $self, $class;
 }
 
 sub insertar_final{
@@ -44,7 +44,7 @@ sub insertar_inicio{
 
 sub recorrer{
     my($self, $codigoReferencia)=@_;
-    $cur = $self->{head};
+    my $cur = $self->{head};
     for(1 .. $self->{size}){
         $codigoReferencia->($cur);
         $cur = $cur->siguiente;

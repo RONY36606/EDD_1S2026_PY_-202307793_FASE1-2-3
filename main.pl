@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 use Text::CSV;
+use Time::Piece;
 
 # Forzar salida en UTF-8
 use open ':std', ':encoding(UTF-8)';
@@ -82,12 +83,20 @@ use lib 'TDA';
 
 use medicamento;
 use listaDoblementeEnlazada;
+use listaCircular;
+use proveedor;
+use entregaProveedor;
+use solicitudReabastecimiento;
+use listaCircularDoble;
+use solicitudReabastecimiento;
 
 
 
 #ESTRUCTURAS GENERALES DEL PROGRAMA
 my $listaMedicamentos = listaDoblementeEnlazada->new;
-
+my $listaProveedores = listaCircular->new;
+my $listaSolicitudesReabaste = listaCircularDoble->new;
+my $rolGeneral;
 
 # Simulación de usuarios y roles
 my %usuarios = (
@@ -167,6 +176,15 @@ sub menu_admin{
                 my $med = $nodo->value; # método del setter para obtener el contenido
              print $med->codigoMedicina, " - ", $med->nombreComercial, "\n";});
         }
+        elsif($op eq '3'){
+            RegistroProveedor();
+        }
+        elsif($op eq '4'){
+            registrarEntregaProveedor();
+        }
+        elsif($op eq '5'){
+            aprobarSolicitudReabaste();
+        }
         else{
             print"Lo siento mucho!, pero esa opción no existe en este menú.";
         }
@@ -188,7 +206,10 @@ sub menu_departamental{
 
         }
         elsif($op eq '2'){
-
+            realizarSolicitudReabaste();
+        }
+        elsif($op eq '3'){
+            mostrarSolicitudes();
         }
         else{
             print"Lo siento mucho!, pero esa opción no existe en este menú.\n";
@@ -262,12 +283,160 @@ sub cargaMasivaMedicina{
 
     close $fh;
 }
+#-----------------------------SUB PARA CREAR PROVEEDORES EN EL SISTEMA--------------------------------
+sub RegistroProveedor{
+#Acá vamos a registrar medicinas para usar
+            print "\n*******************Registro de proveedores*******************\n";
+            print "NIT del proveedor: "; chomp(my $nit = <STDIN>);
+            print "Nombre de la empresa: "; chomp(my $nombre = <STDIN>);
+            print "Contacto principal: "; chomp(my $contacto = <STDIN>);
+            print "Teléfono: "; chomp(my $telefono = <STDIN>);
+            print "Dirección: "; chomp(my $direccion = <STDIN>);
+            print "\n*******************Muchas gracias por tus respuestas :D!*******************\n";
 
+            my $proveedor = proveedor->new(
+                nit => $nit,
+                nombreEmpresa => $nombre,
+                contactoPrincipal => $contacto,
+                telefono => $telefono,
+                direccion => $direccion,
+            );
+
+            #Meter el objeto a la lista doblemente enlazada, al fondo
+            $listaProveedores->insertar($proveedor);
+            print "\n*******************Medicamento registrado :D!*******************\n";
+
+            print "\n--- Lista de proveedores ---\n";
+            $listaProveedores->recorrer(sub { 
+                my $nodo = shift;
+                my $prov = $nodo->valor; # método del setter para obtener el contenido
+             print $prov->nit, " - ", $prov->nombreEmpresa, "\n";});
+}
+
+#-----------------------------SUB PARA INSERTAR NUEVA ENTREGA A PROVEEDOR-----------------------------
+sub registrarEntregaProveedor{
+    print "\n*******************Registro de nueva entrega a proveedor*******************\n";
+            print "Por favor, ingresa el nit del proveedor: "; chomp(my $nit = <STDIN>);
+            print "++++Buscando+++++++++\n";
+            print "++++Buscando+++++++++\n";
+            print "++++Buscando+++++++++\n";
+            print "++++Buscando+++++++++\n";
+    #recorremos y buscamos el númerode nit del proveedor
+    $listaProveedores->recorrer(sub { 
+                my $nodo = shift;
+                my $prov = $nodo->valor; # método del setter para obtener el contenido
+
+                if($prov->nit eq $nit){
+                    #si encuentra el nit, pediremos los demás datos
+                    print "\n*******************Registro de nueva entrega a proveedor*******************\n";
+                    print "Por favor, ingresa el número de la factura: "; chomp(my $factura = <STDIN>);
+                    print "Por favor, ingresa la fecha de entrega del medicamento: "; chomp(my $fecha = <STDIN>);
+                    print "Por favor, ingresa el código del medicamento: "; chomp(my $codigo = <STDIN>);
+                    print "Por favor, ingresa la cantidad entregada del medicamento: "; chomp(my $cantidad = <STDIN>);
+
+                    #GUARDAR EL MEDICAMENTO EN EL PROVEEDOR
+                    $prov->registroEntrega(
+                        nit => $nit,
+                        fechaEntrega => $factura,
+                        numeroFactura => $fecha,
+                        codigoMedicamento => $codigo,
+                        cantidadEntregada => $cantidad
+                    );
+                }
+             print "\n--- Lista de entregas del proveedor ---\n";   
+             print $prov->listarEntregas;});
+}
+
+#-------------------------------SUB PARA SOLICITUD DE REABASTECIMIENTO--------------------------------
+sub realizarSolicitudReabaste{
+    print "\n*******************Nueva solicitud de reabastecimiento*******************\n";
+    print "Por favor, ingresa el código del medicamento requerido: "; chomp(my $medicamento = <STDIN>);
+    print "Por favor, ingresa la cantidad del medicamento requerido: "; chomp(my $cantidad = <STDIN>);
+    print "\n*******************Muchas gracias por tus respuestas :D!*******************\n";
+    my $t = localtime;
+    my $fecha = $t->ymd;
+
+    my $solicitud = solicitudReabastecimiento->new(
+                departamento => $rolGeneral,
+                medicamentoRequerido => $medicamento,
+                cantidadSolicitada => $cantidad,
+                fechaSolicitud => $fecha, 
+                estadoSolicitud => 'sin confirmar'
+            );
+
+    #insertar la solicitud en la lista doblemente enlazada
+    $listaSolicitudesReabaste->insertar($solicitud);
+    print "\n*******************Solicitud registrada :D!*******************\n";
+    print "\n*******************Recibirás una respuesta, muy pronto :D!*******************\n";
+}
+
+#-------------------------------SUB PARA CONFIRMAR SOLICITUD DE REABASTECIMIENTO----------------------
+sub aprobarSolicitudReabaste{
+    $listaSolicitudesReabaste->recorrerAdelante(
+        sub { 
+            #Acá vamos a mostrar la información de la solicitud
+            my $nodo = shift; 
+            my $solicitud = $nodo->valor;
+            #mostrar las solicitudes que no han sido confirmadas
+            if($solicitud->{estadoSolicitud} eq 'sin confirmar'){
+                print "\n--- Solicitudes disponibles ---\n";
+                print $solicitud->departamento, " - ", $solicitud->fechaSolicitud, " - ", "\n", $solicitud->medicamentoRequerido, " - ", $solicitud->cantidadSolicitada,"\n"; 
+                print "Aprobaremos esta solicitud? :D  (s/n): "; chomp(my $respuesta = <STDIN>);
+                #si se aprueba la solicitud, se busca el código del medicamento en la lista de medicinas
+                #se establece el estado en aceptado
+                if(lc($respuesta) eq 's'){
+                    #recorrer los medicamentos disponibles
+                    print "\n--- Buscando unidades disponibles ---\n";
+                    $listaMedicamentos->iterar(sub { 
+                        
+                        my $nodo = shift;
+                        my $med = $nodo->value; # método del setter para obtener el contenido
+                        #si los códigos de los medicamentos son iguales, verificar si hay unidades suficientes
+                        if($med->{codigoMedicina} eq $solicitud->{medicamentoRequerido}){
+                            #verificar que en la solicitud hayan pedido menos unidades que las disponibles
+                           
+                            if($med->{cantidadStock} < $solicitud->{cantidadSolicitada}){
+                                #si hay menos unidades disponibles que las requeridas, rechazamos la solicitud
+                                $solicitud->{estadoSolicitud} = 'rechazado';
+                                print "\n*******************Solicitud rechazada :D!*******************\n";
+                            }
+                            else{
+                                #si hay suficientes medicamentos, restarle al stock lo solicitado
+                                $med->{cantidadStock} = $med->{cantidadStock} - $solicitud->{cantidadSolicitada};
+                                #marcamos la solicitud como aprobada
+                                $solicitud->{estadoSolicitud} = 'aprobada';
+                                print "\n*******************Solicitud aprobada :D!*******************\n";
+                            }
+                        }
+                    });
+                }else{
+                    #si no se aprueba, se establece el estado en rechazado
+                    $solicitud->{estadoSolicitud} = 'rechazado';
+                    print "\n*******************Solicitud rechazada :D!*******************\n";
+                }
+            }
+            else{
+                
+            }
+            
+        });
+}
+
+#-----------------------------SUB PARA MOSTRAR EL HISTORIAL DE SOLICITUDES-------------------------
+sub mostrarSolicitudes{
+    $listaSolicitudesReabaste->recorrerAdelante(
+        sub { 
+            my $nodo = shift;
+            my $solicitud = $nodo->valor; 
+            print $solicitud->departamento, " - ", $solicitud->fechaSolicitud, " - ", "\n", $solicitud->medicamentoRequerido, " - ", $solicitud->cantidadSolicitada,"\n", $solicitud->estadoSolicitud;
+            });
+}
 #-----------------------------FLUJO PRINCIPAL DEL PROGRAMA -------------------------------------------
 while(1){
     my $rol  = elegir_rol();
     last if $rol eq 'salida';
     my $usuario = Login($rol);
+    $rolGeneral = $usuario;
     if ($usuario){
         # si el usuario existe, según el rol, desviaremos a uno u otro lugar
         if($rol eq 'admin'){

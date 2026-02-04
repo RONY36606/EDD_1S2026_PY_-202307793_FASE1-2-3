@@ -7,8 +7,8 @@ sub new{
     my $self = {
         valor => $valor,
         siguiente => undef,
-    }
-    return bless $class, $self;
+    };
+    return bless $self, $class;
 }
 
 #colocar los guetters y setters

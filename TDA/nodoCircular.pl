@@ -7,7 +7,7 @@ sub new{
     my($self) = {
         valor => $valor,
         siguiente => undef,
-    }
+    };
     return bless $self, $class;
 }
 
