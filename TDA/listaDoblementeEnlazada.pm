@@ -160,4 +160,6 @@ sub iterar{
     }
 }
 
+sub size { $_[0]->{size} } 
+
 1;

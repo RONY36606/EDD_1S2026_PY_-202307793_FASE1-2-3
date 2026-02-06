@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use Text::CSV;
 use Time::Piece;
+use Time::Seconds;
+use GraphViz;
 
 # Forzar salida en UTF-8
 use open ':std', ':encoding(UTF-8)';
@@ -185,6 +187,27 @@ sub menu_admin{
         elsif($op eq '5'){
             aprobarSolicitudReabaste();
         }
+        elsif($op eq '6'){
+            visualizarInventario();
+        }
+        elsif($op eq '8'){
+            print "\n*******************Creación de reportes gráficos*******************\n";
+             print "Que reporte deseas generar? \n";
+            print "1.) Reporte de medicinas\n";
+            print "2.) Reporte de solicitudes\n";
+            print "3.) Reporte de proveedores\n";
+            print "4.) Reporte comparación\n";
+            print "5.) salir :(\n";
+            print "Que reporte deseas generar?: "; chomp(my $opcion = <STDIN>);
+            last if $opcion eq '5';  
+            if($opcion eq '1'){
+                graficarListaMedicina($listaMedicamentos);
+            }
+            else{
+                print "!!!!!!!!!!!!!!!!!!!OYE, esa opción no existe!!!!!!!!!!!!!!!!!!!!";
+            } 
+            
+        }
         else{
             print"Lo siento mucho!, pero esa opción no existe en este menú.";
         }
@@ -203,7 +226,7 @@ sub menu_departamental{
         chomp(my $op = <STDIN>);
         last if $op eq '4';        
         if ($op eq '1'){
-
+            visualizarInventarioDepartamental();
         }
         elsif($op eq '2'){
             realizarSolicitudReabaste();
@@ -216,12 +239,19 @@ sub menu_departamental{
         }
     }
 }
+#------------------------------SUB PARA CREAR CÓDIGO MED--------------------------
+sub generar_codigo_medicamento { 
+    my ($listaMedicamentos) = @_; 
+    my $num = $listaMedicamentos->size + 1; #para contar desde uno cawn
+    my $codigo = sprintf("MED%03d", $num);
+     return $codigo; }
 
-#------------------------------SUB PARA REGISTRAR MEDICAMENTOS------------------------------------
+#------------------------------ 1. SUB PARA REGISTRAR MEDICAMENTOS------------------------------------
 sub RegistroMedicamento{
+    #Ver la estructura del código MED00X
 #Acá vamos a registrar medicinas para usar
             print "\n*******************Registro de medicamentos*******************\n";
-            print "Código del medicamento: "; chomp(my $codigo = <STDIN>);
+            my $codigo = generar_codigo_medicamento($listaMedicamentos);
             print "Nombre comercial del medicamento: "; chomp(my $nombre = <STDIN>);
             print "Principio activo del medicamento: "; chomp(my $activo = <STDIN>);
             print "Laboratorio fabricante del medicamento: "; chomp(my $laboratorio = <STDIN>);
@@ -253,7 +283,7 @@ sub RegistroMedicamento{
              print $med->codigoMedicina, " - ", $med->nombreComercial, "\n";});
 }
 
-#-------------------------------SUB PARA CARGA MASIVA DE MEDICAMENTOS--------------------------------
+#-------------------------------2. SUB PARA CARGA MASIVA DE MEDICAMENTOS--------------------------------
 sub cargaMasivaMedicina{
     my($ruta, $listaMedicamentos)=@_;
 
@@ -265,25 +295,39 @@ sub cargaMasivaMedicina{
     while(my $row = $csv->getline($fh)){
         #el row es un arrayRef con toda la data de los medicamentos
         my ($codigo, $nombre, $activo, $laboratorio, $stock, $fecha, $precio, $nivel) = @$row;
-        my $medicina = medicamento->new(
-                codigoMedicina => $codigo,
-                nombreComercial => $nombre,
-                principioActivo => $activo,
-                laboratorioFabricante => $laboratorio,
-                cantidadStock => $stock,
-                fechaVencimiento => $fecha,
-                precio => $precio,
-                nivelMinimoReorden => $nivel,
-            );
-
-            #Meter el objeto a la lista doblemente enlazada, al fondo
-            $listaMedicamentos->pushBack($medicina);
-
+        
+            my $existe =0;
+            $listaMedicamentos->iterar(sub { 
+                my $nodo = shift;
+                my $med = $nodo->value; # método del setter para obtener el contenido
+                #verificar si el código está en la lista
+                if($med->codigoMedicina eq $codigo){
+                    $existe = 1;
+                }
+             });
+             #si es que hay un código repetido, creamos otro
+             if ($existe) { 
+                $codigo =~ /MED(\d+)/; 
+                my $num = $1; 
+                $num++; 
+                $codigo = sprintf("MED%03d", $num); }
+            # Crear objeto medicamento 
+            my $medicina = medicamento->new( 
+                codigoMedicina => $codigo, 
+                nombreComercial => $nombre, 
+                principioActivo => $activo, 
+                laboratorioFabricante => $laboratorio, 
+                cantidadStock => $stock, 
+                fechaVencimiento => $fecha, 
+                precio => $precio, 
+                nivelMinimoReorden => $nivel, ); 
+                # Insertar al final de la lista 
+                $listaMedicamentos->pushBack($medicina);
     }
 
     close $fh;
 }
-#-----------------------------SUB PARA CREAR PROVEEDORES EN EL SISTEMA--------------------------------
+#-----------------------------3. SUB PARA CREAR PROVEEDORES EN EL SISTEMA--------------------------------
 sub RegistroProveedor{
 #Acá vamos a registrar medicinas para usar
             print "\n*******************Registro de proveedores*******************\n";
@@ -313,8 +357,9 @@ sub RegistroProveedor{
              print $prov->nit, " - ", $prov->nombreEmpresa, "\n";});
 }
 
-#-----------------------------SUB PARA INSERTAR NUEVA ENTREGA A PROVEEDOR-----------------------------
+#----------------------------- 4. SUB PARA INSERTAR NUEVA ENTREGA A PROVEEDOR-----------------------------
 sub registrarEntregaProveedor{
+    my $encontrado = 0;
     print "\n*******************Registro de nueva entrega a proveedor*******************\n";
             print "Por favor, ingresa el nit del proveedor: "; chomp(my $nit = <STDIN>);
             print "++++Buscando+++++++++\n";
@@ -327,27 +372,49 @@ sub registrarEntregaProveedor{
                 my $prov = $nodo->valor; # método del setter para obtener el contenido
 
                 if($prov->nit eq $nit){
+                    #ver si encontraron un proveedor
+                    $encontrado = 1;
                     #si encuentra el nit, pediremos los demás datos
                     print "\n*******************Registro de nueva entrega a proveedor*******************\n";
                     print "Por favor, ingresa el número de la factura: "; chomp(my $factura = <STDIN>);
                     print "Por favor, ingresa la fecha de entrega del medicamento: "; chomp(my $fecha = <STDIN>);
                     print "Por favor, ingresa el código del medicamento: "; chomp(my $codigo = <STDIN>);
                     print "Por favor, ingresa la cantidad entregada del medicamento: "; chomp(my $cantidad = <STDIN>);
-
-                    #GUARDAR EL MEDICAMENTO EN EL PROVEEDOR
-                    $prov->registroEntrega(
-                        nit => $nit,
-                        fechaEntrega => $factura,
-                        numeroFactura => $fecha,
-                        codigoMedicamento => $codigo,
-                        cantidadEntregada => $cantidad
-                    );
+                    my $existe =0;
+                    $listaMedicamentos->iterar(sub { 
+                        my $nodo = shift;
+                        my $med = $nodo->value; # método del setter para obtener el contenido
+                        #verificar si el código está en la lista
+                        if($med->codigoMedicina eq $codigo){
+                            $existe = 1;
+                            #actualizaremos de una vez la cantidad del medicamento
+                            $med->set_cantidadStock($med->cantidadStock +$cantidad);
+                        }
+                    });
+                    if($existe){
+                        
+                        #GUARDAR EL MEDICAMENTO EN EL PROVEEDOR
+                        $prov->registroEntrega(
+                            nit => $nit,
+                            fechaEntrega => $factura,
+                            numeroFactura => $fecha,
+                            codigoMedicamento => $codigo,
+                            cantidadEntregada => $cantidad
+                        );
+                        print "\n*******************:D Entrega registrada!*******************\n";
+                    }else{
+                        print "\n*******************Oye, ese medicamento no está registrado!, la entrega no es válida*******************\n";
+                    }
+                }else{
+                    print "\n*******************Lo sentimos, ese proveedor no está registrado*******************\n";
                 }
              print "\n--- Lista de entregas del proveedor ---\n";   
              print $prov->listarEntregas;});
+
+             print "***************************OYE!, Ese proveedor no existe en mis registros!*****************************\n" unless $encontrado;
 }
 
-#-------------------------------SUB PARA SOLICITUD DE REABASTECIMIENTO--------------------------------
+#------------------------------- 5. SUB PARA SOLICITUD DE REABASTECIMIENTO--------------------------------
 sub realizarSolicitudReabaste{
     print "\n*******************Nueva solicitud de reabastecimiento*******************\n";
     print "Por favor, ingresa el código del medicamento requerido: "; chomp(my $medicamento = <STDIN>);
@@ -370,7 +437,7 @@ sub realizarSolicitudReabaste{
     print "\n*******************Recibirás una respuesta, muy pronto :D!*******************\n";
 }
 
-#-------------------------------SUB PARA CONFIRMAR SOLICITUD DE REABASTECIMIENTO----------------------
+#------------------------------- 5. SUB PARA CONFIRMAR SOLICITUD DE REABASTECIMIENTO----------------------
 sub aprobarSolicitudReabaste{
     $listaSolicitudesReabaste->recorrerAdelante(
         sub { 
@@ -379,7 +446,7 @@ sub aprobarSolicitudReabaste{
             my $solicitud = $nodo->valor;
             #mostrar las solicitudes que no han sido confirmadas
             if($solicitud->{estadoSolicitud} eq 'sin confirmar'){
-                print "\n--- Solicitudes disponibles ---\n";
+                print "\n--- Solicitudes disponibles: ", $listaSolicitudesReabaste->{size},"---\n";
                 print $solicitud->departamento, " - ", $solicitud->fechaSolicitud, " - ", "\n", $solicitud->medicamentoRequerido, " - ", $solicitud->cantidadSolicitada,"\n"; 
                 print "Aprobaremos esta solicitud? :D  (s/n): "; chomp(my $respuesta = <STDIN>);
                 #si se aprueba la solicitud, se busca el código del medicamento en la lista de medicinas
@@ -422,14 +489,138 @@ sub aprobarSolicitudReabaste{
         });
 }
 
-#-----------------------------SUB PARA MOSTRAR EL HISTORIAL DE SOLICITUDES-------------------------
+#----------------------------- 5. SUB PARA MOSTRAR EL HISTORIAL DE SOLICITUDES-------------------------
 sub mostrarSolicitudes{
     $listaSolicitudesReabaste->recorrerAdelante(
         sub { 
             my $nodo = shift;
             my $solicitud = $nodo->valor; 
+            print "\n--- Solicitud ---\n";
             print $solicitud->departamento, " - ", $solicitud->fechaSolicitud, " - ", "\n", $solicitud->medicamentoRequerido, " - ", $solicitud->cantidadSolicitada,"\n", $solicitud->estadoSolicitud;
             });
+}
+
+#----------------------------- 6. SUB PARA VISUALIZAR EL INVENTARIO COMPLETO-------------------------
+sub visualizarInventario{
+    print "\n--- Lista de medicamentos en nuestro inventario---\n";
+    print "\n--- Esto es todo lo que tenemos dentro del hospital (.-.)---\n";
+    
+    my $fecha = localtime;
+            $listaMedicamentos->iterar(sub { 
+                my $nodo = shift;
+                my $med = $nodo->value; # método del setter para obtener el contenido
+                print $med->codigoMedicina, " - ", $med->nombreComercial, " - ", $med->principioActivo, " - ", $med->laboratorioFabricante, " - ",$med->cantidadStock, " - ",$med->fechaVencimiento, " - ",$med->precio, " - ",$med->nivelMinimoReorden ,"\n";
+             #verificar si se necesita comprar más
+                if($med->cantidadStock < $med->nivelMinimoReorden){
+                    print "-------->>>>> ALERTA : Se necesita solicitar más unidades de ", $med->nombreComercial,"\n";
+                }
+             #verificar si está próximo a vencer
+             my $fecha_vencimiento_str = $med->fechaVencimiento;
+             my $fecha_vencimiento = Time::Piece->strptime($fecha_vencimiento_str, "%Y-%m-%d");
+             if ($fecha_vencimiento < $fecha){ 
+                print "-------->>>>Lo siento, pero, el medicamento ya venció.\n";
+             } elsif ($fecha_vencimiento <= $fecha + ONE_DAY*7){ 
+                print "-------->>>>>>>>Ten mucho cuidado!, el medicamento vence en menos de una semana.\n";
+             } else { 
+                print "-------->>>(0u0!), Yay!, el medicamento aun esta vigente. :)\n"; }
+                print "\n-----------------------------------------------------------------------------\n";
+             });
+}
+
+#-----------------------------SUB PARA VISUALIZAR INVENTARIO - DEPARTAMENTAL------------------------
+sub visualizarInventarioDepartamental{
+    my $encontrado = 0;
+    print "\n--- Lista de medicamentos en nuestro inventario---\n";
+    print "\n*******************Acá podrás buscar el medicamento de tu interes!*******************\n";
+    print "Cuentame!, Quieres buscar el medicamento por nombre o identificador? :D, n para nombre e i para identificador  (n/i): "; chomp(my $respuesta = <STDIN>);
+    if(lc($respuesta) eq 'i'){
+        print "\n--- Lista de medicamentos ---\n";
+            print "Ingresa el código del medicamento del que necesitas información!: "; chomp(my $codigo = <STDIN>);
+            $listaMedicamentos->iterar(sub { 
+                my $nodo = shift;
+                my $med = $nodo->value; # método del setter para obtener el contenido
+                if($med->codigoMedicina eq uc($codigo)){
+                    print $med->nombreComercial, " - ", $med->cantidadStock, "\n";
+                    $encontrado = 1;
+                }
+             });
+             print "\n*******************Oye!, ese medicamento no existe*******************\n" unless $encontrado;
+    }
+    elsif(lc($respuesta) eq 'n'){
+        print "\n--- Lista de medicamentos ---\n";
+            print "Ingresa el nombre del medicamento del que necesitas información!: "; chomp(my $nombre = <STDIN>);
+            $listaMedicamentos->iterar(sub { 
+                my $nodo = shift;
+                my $med = $nodo->value; # método del setter para obtener el contenido
+                if(uc($med->nombreComercial) eq uc($nombre)){
+                    print $med->nombreComercial, " - ", $med->cantidadStock, "\n";
+                    $encontrado = 1;
+                }
+             });
+             print "\n*******************Oye!, ese medicamento no existe*******************\n" unless $encontrado;
+    }
+    else{
+        print "\n*******************Oye!, esa opción no existe*******************\n";
+    }
+
+}
+
+#*********************************************************************************************************************************
+#*********************************************************************************************************************************
+#*********************************************************************************************************************************
+#*********************************************************************************************************************************
+
+#------------------------------------REPORTE PARA LA LISTA DOBLEMENTE ENLAZADA--------------
+sub graficarListaMedicina{
+    my($listaMedicamentos)=@_;
+    my $g = GraphViz->new(directed =>1);
+    my $fecha = localtime;
+    my $color = 'green  ';
+
+    #hay que recorrer la lista de medicinas
+    $listaMedicamentos->iterar(sub { 
+                my $nodo = shift;
+                my $med = $nodo->value; # método del setter para obtener el contenido
+
+                #verificar si se necesita comprar más
+                if($med->cantidadStock < $med->nivelMinimoReorden){
+                    $color = 'red';
+                }
+             #verificar si está próximo a vencer
+             my $fecha_vencimiento_str = $med->fechaVencimiento;
+             my $fecha_vencimiento = Time::Piece->strptime($fecha_vencimiento_str, "%Y-%m-%d");
+             if ($fecha_vencimiento < $fecha){ 
+                $color = 'yellow';
+             } elsif ($fecha_vencimiento <= $fecha + ONE_DAY*7){ 
+                $color = 'yellow';
+             } 
+
+             
+             #cada nodo será un rectángulo con color
+             $g->add_node(
+                $med->{codigoMedicina},
+                label => "$med->{codigoMedicina}\n$med->{nombreComercial}",
+                shape => 'box',
+                style => 'filled',
+                color => $color,
+                fontcolor => 'black'
+             );
+             # Conexión hacia el siguiente
+            if ($nodo->next) { 
+                $g->add_edge($med->{codigoMedicina} => $nodo->next->value->{codigoMedicina});
+                 } # Conexión hacia el anterior (en rojo) 
+            if ($nodo->prev) { 
+                $g->add_edge($med->{codigoMedicina} => $nodo->prev->value->{codigoMedicina}, color => 'red'); }
+             
+             });
+             # Exportar a archivo DOT
+            open my $fh, '>', 'lista.dot' or die $!;
+            print $fh $g->as_text;
+            close $fh;
+
+
+             #Guardar el PNG en una carpeta
+             system("dot -Tpng graficos/lista.dot -o graficos/lista.png");
 }
 #-----------------------------FLUJO PRINCIPAL DEL PROGRAMA -------------------------------------------
 while(1){
