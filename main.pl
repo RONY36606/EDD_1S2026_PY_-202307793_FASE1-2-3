@@ -203,6 +203,9 @@ sub menu_admin{
             if($opcion eq '1'){
                 graficarListaMedicina($listaMedicamentos);
             }
+            elsif($opcion eq '2'){
+                graficarListaSolicitudes($listaSolicitudesReabaste);
+            }
             else{
                 print "!!!!!!!!!!!!!!!!!!!OYE, esa opción no existe!!!!!!!!!!!!!!!!!!!!";
             } 
@@ -244,6 +247,12 @@ sub generar_codigo_medicamento {
     my ($listaMedicamentos) = @_; 
     my $num = $listaMedicamentos->size + 1; #para contar desde uno cawn
     my $codigo = sprintf("MED%03d", $num);
+     return $codigo; }
+#------------------------------SUB PARA CREAR CÓDIGO MED--------------------------
+sub generar_codigo_solicitud { 
+    my ($listaSolicitudesReabaste) = @_; 
+    my $num = $listaSolicitudesReabaste->size + 1; #para contar desde uno cawn
+    my $codigo = sprintf("SOL%03d", $num);
      return $codigo; }
 
 #------------------------------ 1. SUB PARA REGISTRAR MEDICAMENTOS------------------------------------
@@ -422,8 +431,22 @@ sub realizarSolicitudReabaste{
     print "\n*******************Muchas gracias por tus respuestas :D!*******************\n";
     my $t = localtime;
     my $fecha = $t->ymd;
+    my $encontrado = 0;
 
-    my $solicitud = solicitudReabastecimiento->new(
+    $listaMedicamentos->iterar(sub { 
+                my $nodo = shift;
+                my $med = $nodo->value; # método del setter para obtener el contenido
+             #verificar que la medicina exista para poder crear la solicitud
+             if($med->codigoMedicina eq $medicamento){
+                $encontrado = 1;
+             }
+             });
+
+    if($encontrado == 1){
+        my $codigo = generar_codigo_solicitud($listaSolicitudesReabaste);
+        #si lo encuentra, se guarda la solicitud
+        my $solicitud = solicitudReabastecimiento->new(
+                codigoSolicitud => $codigo,
                 departamento => $rolGeneral,
                 medicamentoRequerido => $medicamento,
                 cantidadSolicitada => $cantidad,
@@ -431,10 +454,17 @@ sub realizarSolicitudReabaste{
                 estadoSolicitud => 'sin confirmar'
             );
 
-    #insertar la solicitud en la lista doblemente enlazada
-    $listaSolicitudesReabaste->insertar($solicitud);
-    print "\n*******************Solicitud registrada :D!*******************\n";
-    print "\n*******************Recibirás una respuesta, muy pronto :D!*******************\n";
+        #insertar la solicitud en la lista doblemente enlazada
+        $listaSolicitudesReabaste->insertar($solicitud);
+        print "\n*******************Solicitud registrada :D!*******************\n";
+        print "\n*******************Recibirás una respuesta, muy pronto :D!*******************\n";
+    }
+    else{
+        print "\n*******************El medicamento que mencionas, no está registrado:(!*******************\n";
+    }
+
+    
+    
 }
 
 #------------------------------- 5. SUB PARA CONFIRMAR SOLICITUD DE REABASTECIMIENTO----------------------
@@ -575,7 +605,7 @@ sub graficarListaMedicina{
     my($listaMedicamentos)=@_;
     my $g = GraphViz->new(directed =>1);
     my $fecha = localtime;
-    my $color = 'green  ';
+    my $color = 'green';
 
     #hay que recorrer la lista de medicinas
     $listaMedicamentos->iterar(sub { 
@@ -599,7 +629,7 @@ sub graficarListaMedicina{
              #cada nodo será un rectángulo con color
              $g->add_node(
                 $med->{codigoMedicina},
-                label => "$med->{codigoMedicina}\n$med->{nombreComercial}",
+                label => "$med->{codigoMedicina}\n$med->{nombreComercial}\n$med->{fechaVencimiento}\n$med->{cantidadStock}",
                 shape => 'box',
                 style => 'filled',
                 color => $color,
@@ -614,13 +644,62 @@ sub graficarListaMedicina{
              
              });
              # Exportar a archivo DOT
-            open my $fh, '>', 'lista.dot' or die $!;
+            mkdir "graficos" unless -d "graficos"; #se crea la carpeta
+
+            open my $fh, '>', 'graficos/lista.dot' or die $!;
             print $fh $g->as_text;
             close $fh;
 
 
+
              #Guardar el PNG en una carpeta
              system("dot -Tpng graficos/lista.dot -o graficos/lista.png");
+}
+#------------------------------------REPORTE PARA LA LISTA CIRCULAR DOBLEMENTE ENLAZADA--------------
+sub graficarListaSolicitudes{
+    my($listaSolicitudesReabaste)=@_;
+    my $g = GraphViz->new(directed =>1);
+    my $fecha = localtime;
+    my $ordenSolicitud = 0;
+
+    #hay que recorrer la lista de medicinas
+    $listaSolicitudesReabaste->recorrerAdelante(sub { 
+                my $nodo = shift;
+                my $solicitud = $nodo->valor; # método del setter para obtener el contenido
+                $ordenSolicitud++;
+                my $color = ($ordenSolicitud == 1) ? 'red' : 'white';
+             
+             if($solicitud->estadoSolicitud eq 'sin confirmar'){
+                #cada nodo será un rectángulo con color
+             $g->add_node(
+                $solicitud->{codigoSolicitud},
+                label => "$ordenSolicitud\n$solicitud->{departamento}\n$solicitud->{medicamentoRequerido}\n$solicitud->{cantidadSolicitada}",
+                shape => 'circle',
+                style => 'filled',
+                fillcolor => $color,
+                color => 'black',
+                fontcolor => 'black'
+             );
+            # Conexión hacia el siguiente
+            if ($nodo->siguiente) { 
+                $g->add_edge($solicitud->{codigoSolicitud} => $nodo->siguiente->valor->{codigoSolicitud});
+                 } # Conexión hacia el anterior (en rojo) 
+            if ($nodo->anterior) { 
+                $g->add_edge($solicitud->{codigoSolicitud} => $nodo->anterior->valor->{codigoSolicitud}, color => 'red'); }
+             }
+             
+             });
+             # Exportar a archivo DOT
+            mkdir "graficos" unless -d "graficos"; #se crea la carpeta
+
+            open my $fh, '>', 'graficos/listaCircularDoble.dot' or die $!;
+            print $fh $g->as_text;
+            close $fh;
+
+
+
+             #Guardar el PNG en una carpeta
+             system("dot -Tpng graficos/listaCircularDoble.dot -o graficos/listaCircularDoble.png");
 }
 #-----------------------------FLUJO PRINCIPAL DEL PROGRAMA -------------------------------------------
 while(1){

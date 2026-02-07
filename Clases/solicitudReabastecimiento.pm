@@ -5,6 +5,7 @@ use warnings;
 sub new{
     my($class, %args)=@_;
     my $self = {
+        codigoSolicitud =>$args{codigoSolicitud} || '',
         departamento => $args{departamento} || '',
         medicamentoRequerido => $args{medicamentoRequerido} || '',
         cantidadSolicitada => $args{cantidadSolicitada} || 0,
@@ -15,6 +16,9 @@ sub new{
 };
 
 # Getters y setters
+sub codigoSolicitud { $_[0]->{codigoSolicitud} } 
+sub set_codigoSolicitud { $_[0]->{codigoSolicitud} = $_[1] } 
+
 sub departamento { $_[0]->{departamento} } 
 sub set_departamento { $_[0]->{departamento} = $_[1] } 
 
