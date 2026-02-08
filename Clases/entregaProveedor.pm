@@ -9,13 +9,14 @@ sub new{
         fechaEntrega => $args{fechaEntrega} || '',
         numeroFactura => $args{numeroFactura} || '',
         codigoMedicamento => $args{codigoMedicamento} || '',
-        cantidadEntregada => $args{cantidadStock} || 0,
+        cantidadEntregada => $args{cantidadEntregada} || 0,
     };
 
     return bless $self, $class;
 };
 
 # Getters y setters
+
 sub nit { $_[0]->{nit} } 
 sub set_nit { $_[0]->{nit} = $_[1] } 
 

@@ -206,6 +206,11 @@ sub menu_admin{
             elsif($opcion eq '2'){
                 graficarListaSolicitudes($listaSolicitudesReabaste);
             }
+            elsif($opcion eq '3'){
+                graficarListaProveedores($listaProveedores);
+            }elsif($opcion eq '4'){
+
+            }
             else{
                 print "!!!!!!!!!!!!!!!!!!!OYE, esa opción no existe!!!!!!!!!!!!!!!!!!!!";
             } 
@@ -254,6 +259,7 @@ sub generar_codigo_solicitud {
     my $num = $listaSolicitudesReabaste->size + 1; #para contar desde uno cawn
     my $codigo = sprintf("SOL%03d", $num);
      return $codigo; }
+
 
 #------------------------------ 1. SUB PARA REGISTRAR MEDICAMENTOS------------------------------------
 sub RegistroMedicamento{
@@ -405,20 +411,19 @@ sub registrarEntregaProveedor{
                         #GUARDAR EL MEDICAMENTO EN EL PROVEEDOR
                         $prov->registroEntrega(
                             nit => $nit,
-                            fechaEntrega => $factura,
-                            numeroFactura => $fecha,
+                            fechaEntrega => $fecha,
+                            numeroFactura => $factura,
                             codigoMedicamento => $codigo,
                             cantidadEntregada => $cantidad
                         );
                         print "\n*******************:D Entrega registrada!*******************\n";
+                        print "\n--- Lista de entregas del proveedor ---\n";   
+                        print $prov->listarEntregas;
                     }else{
                         print "\n*******************Oye, ese medicamento no está registrado!, la entrega no es válida*******************\n";
                     }
-                }else{
-                    print "\n*******************Lo sentimos, ese proveedor no está registrado*******************\n";
                 }
-             print "\n--- Lista de entregas del proveedor ---\n";   
-             print $prov->listarEntregas;});
+             });
 
              print "***************************OYE!, Ese proveedor no existe en mis registros!*****************************\n" unless $encontrado;
 }
@@ -654,6 +659,7 @@ sub graficarListaMedicina{
 
              #Guardar el PNG en una carpeta
              system("dot -Tpng graficos/lista.dot -o graficos/lista.png");
+             print "\n*******************Gráfico generado! :D*******************\n";
 }
 #------------------------------------REPORTE PARA LA LISTA CIRCULAR DOBLEMENTE ENLAZADA--------------
 sub graficarListaSolicitudes{
@@ -700,6 +706,76 @@ sub graficarListaSolicitudes{
 
              #Guardar el PNG en una carpeta
              system("dot -Tpng graficos/listaCircularDoble.dot -o graficos/listaCircularDoble.png");
+             print "\n*******************Gráfico generado! :D*******************\n";
+}
+
+#------------------------------------REPORTE PARA LA LISTA CIRCULAR SIMPLE ENLAZADA--------------
+sub graficarListaProveedores{
+    my($listaProveedores)=@_;
+    my $g = GraphViz->new(directed =>1);
+    my $fecha = localtime;
+
+    #hay que recorrer la lista de medicinas
+    $listaProveedores->recorrer(sub { 
+                my $nodo = shift;
+                my $prov = $nodo->valor; # método del setter para obtener el contenido
+             
+             #creamos un nodo
+             $g->add_node(
+                $prov->{nit},
+                label => "$prov->{nit}\n$prov->{nombreEmpresa}",
+                shape => 'circle',
+                style => 'filled',
+                fillcolor => 'white',
+                color => 'black',
+                fontcolor => 'black'
+             );
+            # Conexión hacia el siguiente
+            if ($nodo->siguiente) { 
+                $g->add_edge($prov->{nit} => $nodo->siguiente->valor->{nit}, color => 'red');
+                 } # Conexión hacia el anterior (en rojo) 
+             
+             #Graficar las entregas
+             my $entregas = $prov->{entregas};
+             my $prevEntregaId;
+             $entregas->recorrer( sub{
+                my $nodoSimple=shift;
+                my $entrega = $nodoSimple->valor;
+                my $idEntrega = $prov->{nit} . "_F" . $entrega->{numeroFactura} . "_" . $entrega->{codigoMedicamento};
+                #creamos un nodo
+                $g->add_node(
+                    $idEntrega,
+                    label => "$entrega->{fechaEntrega}\n$entrega->{numeroFactura}\n$entrega->{codigoMedicamento}\n$entrega->{cantidadEntregada}",
+                    shape => 'box',
+                    style => 'filled',
+                    fillcolor => 'white',
+                    color => 'black',
+                    fontcolor => 'black'
+                );
+                #creamos la conexión de los nodos
+                # Conexión proveedor a la primera entrega
+                if (!defined $prevEntregaId) { 
+                    $g->add_edge($prov->{nit} => $idEntrega); } 
+                else { # Conexión entre entregas (lista simple) 
+                $g->add_edge($prevEntregaId => $idEntrega);
+                print"$prevEntregaId", "$idEntrega"; }
+                $prevEntregaId = $idEntrega;
+
+             });
+             
+             });
+             # Exportar a archivo DOT
+            mkdir "graficos" unless -d "graficos"; #se crea la carpeta
+
+            open my $fh, '>', 'graficos/listaCircularSimple.dot' or die $!;
+            print $fh $g->as_text;
+            close $fh;
+
+
+
+             #Guardar el PNG en una carpeta
+             system("dot -Tpng graficos/listaCircularSimple.dot -o graficos/listaCircularSimple.png");
+             print "\n*******************Gráfico generado! :D*******************\n";
 }
 #-----------------------------FLUJO PRINCIPAL DEL PROGRAMA -------------------------------------------
 while(1){
