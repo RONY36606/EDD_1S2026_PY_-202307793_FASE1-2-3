@@ -4,6 +4,8 @@ MED002,Ibuprofeno,Ibuprofeno,Genérico,50,2025-06-30,3.00,10
 MED003,Amoxicilina,Amoxicilina,PharmaPlus,200,2027-03-15,5.75,30
 MED004,Loratadina,Loratadina,SaludSA,80,2026-09-01,4.20,15
 MED005,Omeprazol,Omeprazol,LabVida,120,2027-01-20,6.00,25
+MED005,Omeprazol,Omeprazol,LabPlux,120,2027-01-20,6.50,25
+MED005,Omeprazol,Omeprazol,LabDia,120,2027-01-20,6.35,25
 MED006,Metformina,Metformina,Genérico,300,2028-05-10,1.80,50
 MED007,Atorvastatina,Atorvastatina,CardioPharm,60,2025-11-11,7.50,20
 MED008,Diclofenaco,Diclofenaco,Genérico,150,2026-07-07,3.40,25

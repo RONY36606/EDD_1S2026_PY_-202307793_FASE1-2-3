@@ -91,6 +91,7 @@ use entregaProveedor;
 use solicitudReabastecimiento;
 use listaCircularDoble;
 use solicitudReabastecimiento;
+use matrizDispersa;
 
 
 
@@ -99,6 +100,7 @@ my $listaMedicamentos = listaDoblementeEnlazada->new;
 my $listaProveedores = listaCircular->new;
 my $listaSolicitudesReabaste = listaCircularDoble->new;
 my $rolGeneral;
+my $matrizDispersaMed = matrizDispersa->new;
 
 # Simulación de usuarios y roles
 my %usuarios = (
@@ -189,6 +191,9 @@ sub menu_admin{
         }
         elsif($op eq '6'){
             visualizarInventario();
+        }
+        elsif($op eq '7'){
+            busquedaMedicamentoMatriz($matrizDispersaMed);
         }
         elsif($op eq '8'){
             print "\n*******************Creación de reportes gráficos*******************\n";
@@ -286,6 +291,8 @@ sub RegistroMedicamento{
                 precio => $precio,
                 nivelMinimoReorden => $nivel,
             );
+            #meter los datos dentro de la matriz dispersa
+            $matrizDispersaMed->insertar($laboratorio, $nombre, $medicina);
 
             #Meter el objeto a la lista doblemente enlazada, al fondo
             $listaMedicamentos->pushBack($medicina);
@@ -311,21 +318,25 @@ sub cargaMasivaMedicina{
         #el row es un arrayRef con toda la data de los medicamentos
         my ($codigo, $nombre, $activo, $laboratorio, $stock, $fecha, $precio, $nivel) = @$row;
         
-            my $existe =0;
-            $listaMedicamentos->iterar(sub { 
-                my $nodo = shift;
-                my $med = $nodo->value; # método del setter para obtener el contenido
-                #verificar si el código está en la lista
-                if($med->codigoMedicina eq $codigo){
-                    $existe = 1;
+            # Generar un código único, en caso de que se repita alguno
+            if ($codigo =~ /MED(\d+)/) {
+                my $num = $1; #obtener el número de después del MED
+                while (1) {
+                    my $existe = 0;
+                    $listaMedicamentos->iterar(sub {
+                        my $nodo = shift;
+                        my $med = $nodo->value;
+                        #verificar que el código no se repita entre toda la lisat
+                        if ($med->codigoMedicina eq $codigo) {
+                            $existe = 1;
+                        }
+                    });
+                    last unless $existe; # si no existe, salimos
+                    $num++;
+                    $codigo = sprintf("MED%03d", $num);
                 }
-             });
-             #si es que hay un código repetido, creamos otro
-             if ($existe) { 
-                $codigo =~ /MED(\d+)/; 
-                my $num = $1; 
-                $num++; 
-                $codigo = sprintf("MED%03d", $num); }
+            }
+
             # Crear objeto medicamento 
             my $medicina = medicamento->new( 
                 codigoMedicina => $codigo, 
@@ -338,6 +349,8 @@ sub cargaMasivaMedicina{
                 nivelMinimoReorden => $nivel, ); 
                 # Insertar al final de la lista 
                 $listaMedicamentos->pushBack($medicina);
+                #meter los datos dentro de la matriz dispersa
+                $matrizDispersaMed->insertar($laboratorio, $nombre, $medicina);
     }
 
     close $fh;
@@ -363,7 +376,7 @@ sub RegistroProveedor{
 
             #Meter el objeto a la lista doblemente enlazada, al fondo
             $listaProveedores->insertar($proveedor);
-            print "\n*******************Medicamento registrado :D!*******************\n";
+            print "\n*******************Proveedor registrado :D!*******************\n";
 
             print "\n--- Lista de proveedores ---\n";
             $listaProveedores->recorrer(sub { 
@@ -598,6 +611,29 @@ sub visualizarInventarioDepartamental{
         print "\n*******************Oye!, esa opción no existe*******************\n";
     }
 
+}
+
+#-------------------------------------------SUB PARA BUSCAR EN LA MATRIZ DISPERSA POR NOMBRE O LABORATORIO---------------------------
+sub busquedaMedicamentoMatriz{
+    my ($self) = @_;
+    my $encontrado = 0;
+    print "Medicamentos en columnas: ", join(", ", keys %{$self->{columnas}}), "\n";
+
+    print "\n--- Matriz de medicamentos en nuestro inventario---\n";
+    print "\n*******************Acá podrás buscar el medicamento de tu interes!*******************\n";
+    #caso Primordial-.------->>>>>
+        print "\n--- Matriz de medicamentos ---\n";
+            print "Ingresa el nombre del medicamento del que necesitas información!: "; chomp(my $nombre = <STDIN>);
+            #si existe el nombre en los registros de la línea
+            if ($self->{columnas}{$nombre}) { 
+                my $actual = $self->{columnas}{$nombre}; 
+                print "\nResultados para medicamento $nombre:\n";
+                while ($actual) { print "Laboratorio: $actual->{fila}, Precio: $actual->{valor}->{precio}, Cantidad: $actual->{valor}->{cantidadStock}\n"; 
+                $actual = $actual->{abajo}; 
+                $encontrado = 1; }
+                }
+             print "\n*******************Oye!, ese medicamento no existe*******************\n" unless $encontrado;
+    
 }
 
 #*********************************************************************************************************************************
