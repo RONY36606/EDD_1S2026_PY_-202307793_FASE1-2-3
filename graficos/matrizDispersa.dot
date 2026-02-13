@@ -1,0 +1,14 @@
+digraph Matriz {
+    node [shape=record, fontname="Helvetica"];
+    header [label="{ Laboratorio | AntibióticosSA | CardioPharm | Genérico | LabDia | LabPlux | LabVida | PharmaPlus | SaludSA }"];
+    "Amoxicilina" [label="{ Amoxicilina |   |   |   |   |   |   |   |   }"];
+    "Atorvastatina" [label="{ Atorvastatina |   |   |   |   |   |   |   |   }"];
+    "Azitromicina" [label="{ Azitromicina |   |   |   |   |   |   |   |   }"];
+    "Diclofenaco" [label="{ Diclofenaco |   |   |   |   |   |   |   |   }"];
+    "Ibuprofeno" [label="{ Ibuprofeno |   |   |   |   |   |   |   |   }"];
+    "Loratadina" [label="{ Loratadina |   |   |   |   |   |   |   |   }"];
+    "Losartán" [label="{ Losartán |   |   |   |   |   |   |   |   }"];
+    "Metformina" [label="{ Metformina |   |   |   |   |   |   |   |   }"];
+    "Omeprazol" [label="{ Omeprazol |   |   |   |   |   |   |   |   }"];
+    "Paracetamol" [label="{ Paracetamol |   |   |   |   |   |   |   |   }"];
+}

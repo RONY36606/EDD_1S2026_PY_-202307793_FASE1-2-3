@@ -214,7 +214,7 @@ sub menu_admin{
             elsif($opcion eq '3'){
                 graficarListaProveedores($listaProveedores);
             }elsif($opcion eq '4'){
-
+                graficarMatrizMedicamentos($matrizDispersaMed)
             }
             else{
                 print "!!!!!!!!!!!!!!!!!!!OYE, esa opción no existe!!!!!!!!!!!!!!!!!!!!";
@@ -813,6 +813,53 @@ sub graficarListaProveedores{
              system("dot -Tpng graficos/listaCircularSimple.dot -o graficos/listaCircularSimple.png");
              print "\n*******************Gráfico generado! :D*******************\n";
 }
+#---------------------------------SUB PARA GRAFICAR LA MATRIZ DISPERSA------------------------------
+sub graficarMatrizMedicamentos {
+    my ($matriz) = @_;
+     # Exportar a archivo DOT
+    mkdir "graficos" unless -d "graficos"; #se crea la carpeta
+    open my $fh, '>', 'graficos/matrizDispersa.dot' or die $!; #abrimos nuestro archivo
+
+    print $fh "digraph Matriz {\n";
+    print $fh "    node [shape=record, fontname=\"Helvetica\"];\n";
+
+    # Obtener todas las columnas (medicamentos)
+    my @filas = sort keys %{$matriz->{filas}};
+
+    # Cabecera, se obtiene a través del arreglo con las columnas
+    my $header = "{ Laboratorio | " . join(" | ", @filas) . " }";
+    print $fh "    header [label=\"$header\"];\n";
+
+    # Filas dinámicas, irlas recorriendo xd
+
+    foreach my $medicina (sort keys %{$matriz->{columnas}}) {
+        my $actual = $matriz->{columnas}{$medicina}; #variable iteradora, recorrer las medicinas
+        my %valores; #esto es un hash temporal, para obtener los datos de los medicamentos
+        print $matriz->{columnas}{$medicina}->{valor};
+        while ($actual) {
+            my $med = $actual->{valor}; #obtenemos el contenido del nodo
+            $valores{$actual->{columna}} =
+                $med->codigoMedicina . "\\nPrecio:" . $med->precio . "\\nStock:" . $med->cantidadStock;
+            $actual = $actual->{derecha};
+        }
+
+        my @celdas;
+        foreach my $col (@filas) {
+            push @celdas, ($valores{$col} // " ");
+        }
+        my $filaLabel = "{ $medicina | " . join(" | ", @celdas) . " }";
+        print $fh "    \"$medicina\" [label=\"$filaLabel\"];\n";
+    }
+
+    print $fh "}\n";
+    close $fh;
+
+    system("dot -Tpng graficos/matrizDispersa.dot -o graficos/matrizDispersa.png");
+    print "\n*******************Gráfico de matriz generado! :D*******************\n";
+}
+
+
+
 #-----------------------------FLUJO PRINCIPAL DEL PROGRAMA -------------------------------------------
 while(1){
     my $rol  = elegir_rol();
