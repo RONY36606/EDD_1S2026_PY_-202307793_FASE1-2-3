@@ -624,7 +624,7 @@ sub busquedaMedicamentoMatriz{
     #caso Primordial-.------->>>>>
         print "\n--- Matriz de medicamentos ---\n";
             print "Ingresa el nombre del medicamento del que necesitas información!: "; chomp(my $nombre = <STDIN>);
-            #si existe el nombre en los registros de la línea
+            #si existe el nombre en los registros de la columna, donde están los medicamentos
             if ($self->{columnas}{$nombre}) { 
                 my $actual = $self->{columnas}{$nombre}; 
                 print "\nResultados para medicamento $nombre:\n";
@@ -815,40 +815,45 @@ sub graficarListaProveedores{
 }
 #---------------------------------SUB PARA GRAFICAR LA MATRIZ DISPERSA------------------------------
 sub graficarMatrizMedicamentos {
+    #lo haremos de una forma diferente a los otros grafos
+    #CLAVE IMPORTANTE
+    #LAS FILAS SON LOS LABORATORIOS
+    #LAS COLUMNAS SON LOS MEDICAMENTOS
     my ($matriz) = @_;
-     # Exportar a archivo DOT
-    mkdir "graficos" unless -d "graficos"; #se crea la carpeta
-    open my $fh, '>', 'graficos/matrizDispersa.dot' or die $!; #abrimos nuestro archivo
+    open my $fh, '>', 'graficos/matrizDispersa.dot' or die $!;
 
     print $fh "digraph Matriz {\n";
     print $fh "    node [shape=record, fontname=\"Helvetica\"];\n";
 
-    # Obtener todas las columnas (medicamentos)
-    my @filas = sort keys %{$matriz->{filas}};
+    # Obtener todas las columnas (laboratorios)
+    my @laboratorios = sort keys %{$matriz->{filas}};
 
-    # Cabecera, se obtiene a través del arreglo con las columnas
-    my $header = "{ Laboratorio | " . join(" | ", @filas) . " }";
+    # Cabecera, serían los laboratorios
+    my $header = "{ Laboratorio | " . join(" | ", @laboratorios) . " }";
     print $fh "    header [label=\"$header\"];\n";
 
-    # Filas dinámicas, irlas recorriendo xd
-
-    foreach my $medicina (sort keys %{$matriz->{columnas}}) {
-        my $actual = $matriz->{columnas}{$medicina}; #variable iteradora, recorrer las medicinas
-        my %valores; #esto es un hash temporal, para obtener los datos de los medicamentos
-        print $matriz->{columnas}{$medicina}->{valor};
+    # Filas dinámicas, recorrer las medicina
+    foreach my $med (sort keys %{$matriz->{columnas}}) {
+        #se toma un item de la fila medicamento
+        my $actual = $matriz->{columnas}{$med};
+        my %valores;
+        
+    #se recorren los elementos que están esa fila, los medicamentos
         while ($actual) {
-            my $med = $actual->{valor}; #obtenemos el contenido del nodo
-            $valores{$actual->{columna}} =
-                $med->codigoMedicina . "\\nPrecio:" . $med->precio . "\\nStock:" . $med->cantidadStock;
-            $actual = $actual->{derecha};
+            my $medicamento = $actual->{valor};
+            #se guardan los valores de los elemtnos que encontremos
+            $valores{$actual->{fila}} =
+                $medicamento->codigoMedicina. "\\n" .$medicamento->nombreComercial . "\\n" . "\\nPrecio:" . $medicamento->precio . "\\nStock:" . $medicamento->cantidadStock;
+            $actual = $actual->{abajo};
         }
 
+        #acá es donde se insertan los valores dentro de la matriz
         my @celdas;
-        foreach my $col (@filas) {
-            push @celdas, ($valores{$col} // " ");
+        foreach my $lab (@laboratorios) {
+            push @celdas, ($valores{$lab} // " ");
         }
-        my $filaLabel = "{ $medicina | " . join(" | ", @celdas) . " }";
-        print $fh "    \"$medicina\" [label=\"$filaLabel\"];\n";
+        my $filaLabel = "{ $med | " . join(" | ", @celdas) . " }";
+        print $fh "    \"$med\" [label=\"$filaLabel\"];\n";
     }
 
     print $fh "}\n";
@@ -857,6 +862,9 @@ sub graficarMatrizMedicamentos {
     system("dot -Tpng graficos/matrizDispersa.dot -o graficos/matrizDispersa.png");
     print "\n*******************Gráfico de matriz generado! :D*******************\n";
 }
+
+
+
 
 
 

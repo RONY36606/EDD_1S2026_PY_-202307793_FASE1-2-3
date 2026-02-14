@@ -1,0 +1,192 @@
+digraph test {
+	graph [bb="0,0,4408,157.5",
+		ratio=fill
+	];
+	node [label="\N"];
+	Amoxicilina	[fillcolor=lightblue,
+		height=0.5,
+		label=Amoxicilina,
+		pos="55.446,18",
+		shape=box,
+		style=filled,
+		width=1.1701];
+	Atorvastatina	[fillcolor=lightblue,
+		height=0.5,
+		label=Atorvastatina,
+		pos="420.45,18",
+		shape=box,
+		style=filled,
+		width=1.2326];
+	Azitromicina	[fillcolor=lightblue,
+		height=0.5,
+		label=Azitromicina,
+		pos="785.45,18",
+		shape=box,
+		style=filled,
+		width=1.2222];
+	Diclofenaco	[fillcolor=lightblue,
+		height=0.5,
+		label=Diclofenaco,
+		pos="1150.4,18",
+		shape=box,
+		style=filled,
+		width=1.1389];
+	Ibuprofeno	[fillcolor=lightblue,
+		height=0.5,
+		label=Ibuprofeno,
+		pos="1515.4,18",
+		shape=box,
+		style=filled,
+		width=1.0556];
+	Loratadina	[fillcolor=lightblue,
+		height=0.5,
+		label=Loratadina,
+		pos="2974.4,18",
+		shape=box,
+		style=filled,
+		width=1.0347];
+	LosartÃ¡n	[fillcolor=lightblue,
+		height=0.5,
+		label=LosartÃ¡n,
+		pos="1880.4,18",
+		shape=box,
+		style=filled,
+		width=0.87847];
+	Metformina	[fillcolor=lightblue,
+		height=0.5,
+		label=Metformina,
+		pos="2246.4,18",
+		shape=box,
+		style=filled,
+		width=1.1389];
+	Omeprazol	[fillcolor=lightblue,
+		height=0.5,
+		label=Omeprazol,
+		pos="3702.4,18",
+		shape=box,
+		style=filled,
+		width=1.066];
+	Paracetamol	[fillcolor=lightblue,
+		height=0.5,
+		label=Paracetamol,
+		pos="2611.4,18",
+		shape=box,
+		style=filled,
+		width=1.1597];
+	AntibiÃ³ticosSA	[fillcolor=lightgreen,
+		height=0.5,
+		label=AntibiÃ³ticosSA,
+		pos="785.45,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.8956];
+	AntibiÃ³ticosSA -> Azitromicina	[color=black,
+		label="Cod:medicamento=HASH(0x18c192ad770)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192ad770)->precio\nStock:medicamento=HASH(0x18c192ad770)\
+->cantidadStock",
+		lp="956.45,78.75",
+		pos="e,785.45,36.397 785.45,121.12 785.45,101.92 785.45,70.681 785.45,47.804"];
+	CardioPharm	[fillcolor=lightgreen,
+		height=0.5,
+		label=CardioPharm,
+		pos="420.45,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.6823];
+	CardioPharm -> Atorvastatina	[color=black,
+		label="Cod:medicamento=HASH(0x18c192ad398)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192ad398)->precio\nStock:medicamento=HASH(0x18c192ad398)\
+->cantidadStock",
+		lp="591.45,78.75",
+		pos="e,420.45,36.397 420.45,121.12 420.45,101.92 420.45,70.681 420.45,47.804"];
+	GenÃ©rico	[fillcolor=lightgreen,
+		height=0.5,
+		label=GenÃ©rico,
+		pos="1880.4,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.2416];
+	GenÃ©rico -> Diclofenaco	[color=black,
+		label="Cod:medicamento=HASH(0x18c192ad590)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192ad590)->precio\nStock:medicamento=HASH(0x18c192ad590)\
+->cantidadStock",
+		lp="1339.4,78.75",
+		pos="e,1148.6,36.301 1835.6,137.79 1683.3,135.18 1193.9,125.15 1168.4,103.5 1152.6,90.041 1148.7,66.42 1148.3,47.567"];
+	GenÃ©rico -> Ibuprofeno	[color=black,
+		label="Cod:medicamento=HASH(0x18c165a4860)->codigoMedicina\nPrecio:medicamento=HASH(0x18c165a4860)->precio\nStock:medicamento=HASH(0x18c165a4860)\
+->cantidadStock",
+		lp="1705.4,78.75",
+		pos="e,1513.9,36.499 1836,136.87 1747.6,133.21 1556.6,123.12 1534.4,103.5 1519,89.837 1514.7,66.599 1514,47.947"];
+	GenÃ©rico -> LosartÃ¡n	[color=black,
+		label="Cod:medicamento=HASH(0x18c192b0dd0)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192b0dd0)->precio\nStock:medicamento=HASH(0x18c192b0dd0)\
+->cantidadStock",
+		lp="2051.8,78.75",
+		pos="e,1880.4,36.397 1880.4,121.12 1880.4,101.92 1880.4,70.681 1880.4,47.804"];
+	GenÃ©rico -> Metformina	[color=black,
+		label="Cod:medicamento=HASH(0x18c192ad1b8)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192ad1b8)->precio\nStock:medicamento=HASH(0x18c192ad1b8)\
+->cantidadStock",
+		lp="2417,78.75",
+		pos="e,2247.3,36.214 1924.9,136.77 2012.8,132.96 2202.1,122.62 2224.4,103.5 2240.3,89.902 2245.5,66.457 2246.8,47.707"];
+	GenÃ©rico -> Paracetamol	[color=black,
+		label="Cod:medicamento=HASH(0x18c18f0d7a8)->codigoMedicina\nPrecio:medicamento=HASH(0x18c18f0d7a8)->precio\nStock:medicamento=HASH(0x18c18f0d7a8)\
+->cantidadStock",
+		lp="2781.4,78.75",
+		pos="e,2612.4,36.394 1925.3,137.74 2077.2,134.97 2563.6,124.48 2589.4,103.5 2605.7,90.257 2610.8,66.618 2612.1,47.704"];
+	LabDia	[fillcolor=lightgreen,
+		height=0.5,
+		label=LabDia,
+		pos="3340.4,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.071];
+	LabDia -> Omeprazol	[color=black,
+		label="Cod:medicamento=HASH(0x18c192acfd8)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192acfd8)->precio\nStock:medicamento=HASH(0x18c192acfd8)\
+->cantidadStock",
+		lp="3528.9,78.75",
+		pos="e,3663.6,20.44 3338.9,121.35 3338.3,101.92 3340.5,70.764 3359.4,54 3380.9,34.972 3562.4,24.821 3652.3,20.918"];
+	LabPlux	[fillcolor=lightgreen,
+		height=0.5,
+		label=LabPlux,
+		pos="3702.4,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.1705];
+	LabPlux -> Omeprazol	[color=black,
+		label="Cod:medicamento=HASH(0x18c192acd38)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192acd38)->precio\nStock:medicamento=HASH(0x18c192acd38)\
+->cantidadStock",
+		lp="3873.1,78.75",
+		pos="e,3702.4,36.397 3702.4,121.12 3702.4,101.92 3702.4,70.681 3702.4,47.804"];
+	LabVida	[fillcolor=lightgreen,
+		height=0.5,
+		label=LabVida,
+		pos="4066.4,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.1847];
+	LabVida -> Omeprazol	[color=black,
+		label="Cod:medicamento=HASH(0x18c192987e8)->codigoMedicina\nPrecio:medicamento=HASH(0x18c192987e8)->precio\nStock:medicamento=HASH(0x18c192987e8)\
+->cantidadStock",
+		lp="4237,78.75",
+		pos="e,3741.1,20.502 4067.3,121.29 4067.2,101.79 4063.8,70.582 4044.4,54 4022.7,35.385 3842,25.029 3752.4,20.996"];
+	PharmaPlus	[fillcolor=lightgreen,
+		height=0.5,
+		label=PharmaPlus,
+		pos="55.446,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.5402];
+	PharmaPlus -> Amoxicilina	[color=black,
+		label="Cod:medicamento=HASH(0x18c165b69e0)->codigoMedicina\nPrecio:medicamento=HASH(0x18c165b69e0)->precio\nStock:medicamento=HASH(0x18c165b69e0)\
+->cantidadStock",
+		lp="226.45,78.75",
+		pos="e,55.446,36.397 55.446,121.12 55.446,101.92 55.446,70.681 55.446,47.804"];
+	SaludSA	[fillcolor=lightgreen,
+		height=0.5,
+		label=SaludSA,
+		pos="2974.4,139.5",
+		shape=ellipse,
+		style=filled,
+		width=1.2132];
+	SaludSA -> Loratadina	[color=black,
+		label="Cod:medicamento=HASH(0x18c165b6d88)->codigoMedicina\nPrecio:medicamento=HASH(0x18c165b6d88)->precio\nStock:medicamento=HASH(0x18c165b6d88)\
+->cantidadStock",
+		lp="3145.8,78.75",
+		pos="e,2974.4,36.397 2974.4,121.12 2974.4,101.92 2974.4,70.681 2974.4,47.804"];
+}
