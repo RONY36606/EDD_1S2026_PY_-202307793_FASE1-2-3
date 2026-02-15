@@ -825,14 +825,14 @@ sub graficarMatrizMedicamentos {
     print $fh "digraph Matriz {\n";
     print $fh "    node [shape=record, fontname=\"Helvetica\"];\n";
 
-    # Obtener todas las columnas (laboratorios)
+    # Obtener todos los labs (laboratorios)
     my @laboratorios = sort keys %{$matriz->{filas}};
 
     # Cabecera, serían los laboratorios
     my $header = "{ Laboratorio | " . join(" | ", @laboratorios) . " }";
     print $fh "    header [label=\"$header\"];\n";
 
-    # Filas dinámicas, recorrer las medicina
+    # Filas dinámicas, recorrer las medicina(columnas)
     foreach my $med (sort keys %{$matriz->{columnas}}) {
         #se toma un item de la fila medicamento
         my $actual = $matriz->{columnas}{$med};
@@ -847,7 +847,8 @@ sub graficarMatrizMedicamentos {
             $actual = $actual->{abajo};
         }
 
-        #acá es donde se insertan los valores dentro de la matriz
+        #acá es donde se insertan los valores dentro de la matriz, 
+        #si se encuentra un valor con un laboratorio igual al que obtuvimos antes, se imprime, si no, se deja el espacio.
         my @celdas;
         foreach my $lab (@laboratorios) {
             push @celdas, ($valores{$lab} // " ");
