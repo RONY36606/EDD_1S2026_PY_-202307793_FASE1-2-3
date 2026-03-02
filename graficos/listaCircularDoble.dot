@@ -1,6 +1,38 @@
 digraph test {
-	graph [bb="0,0,0,0",
+	graph [bb="0,0,208.35,320.84",
 		ratio=fill
 	];
 	node [label="\N"];
+	SOL003	[color=black,
+		fillcolor=white,
+		fontcolor=black,
+		height=1.478,
+		label="3\nenfermeria\nMED003\n45",
+		pos="53.21,267.63",
+		shape=circle,
+		style=filled,
+		width=1.478];
+	SOL004	[color=black,
+		fillcolor=white,
+		fontcolor=black,
+		height=1.478,
+		label="4\nenfermeria\nMED004\n56",
+		pos="53.21,125.21",
+		shape=circle,
+		style=filled,
+		width=1.478];
+	SOL003 -> SOL004	[pos="e,46.669,178.07 46.659,214.34 46.474,206.19 46.418,197.7 46.49,189.34"];
+	SOL002	[height=0.5,
+		label=SOL002,
+		pos="166.21,125.21",
+		width=1.1705];
+	SOL003 -> SOL002	[color=red,
+		pos="e,152.97,142.66 86.198,225.64 105.52,201.63 129.3,172.07 145.9,151.45"];
+	SOL004 -> SOL003	[color=red,
+		pos="e,59.76,214.34 59.751,178.07 59.94,186.21 60.001,194.7 59.933,203.06"];
+	SOL001	[height=0.5,
+		label=SOL001,
+		pos="53.21,18",
+		width=1.1705];
+	SOL004 -> SOL001	[pos="e,53.21,36.373 53.21,71.605 53.21,63.344 53.21,55.082 53.21,47.636"];
 }

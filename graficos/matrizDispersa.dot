@@ -1,14 +1,15 @@
 digraph Matriz {
     node [shape=record, fontname="Helvetica"];
-    header [label="{ Laboratorio | AntibióticosSA | CardioPharm | Genérico | LabDia | LabPlux | LabVida | PharmaPlus | SaludSA }"];
-    "Amoxicilina" [label="{ Amoxicilina |   |   |   |   |   |   | MED003\nAmoxicilina\n\nPrecio:5.75\nStock:200 |   }"];
-    "Atorvastatina" [label="{ Atorvastatina |   | MED009\nAtorvastatina\n\nPrecio:7.50\nStock:60 |   |   |   |   |   |   }"];
-    "Azitromicina" [label="{ Azitromicina | MED011\nAzitromicina\n\nPrecio:8.90\nStock:90 |   |   |   |   |   |   |   }"];
-    "Diclofenaco" [label="{ Diclofenaco |   |   | MED010\nDiclofenaco\n\nPrecio:3.40\nStock:150 |   |   |   |   |   }"];
-    "Ibuprofeno" [label="{ Ibuprofeno |   |   | MED002\nIbuprofeno\n\nPrecio:3.00\nStock:50 |   |   |   |   |   }"];
-    "Loratadina" [label="{ Loratadina |   |   |   |   |   |   |   | MED004\nLoratadina\n\nPrecio:4.20\nStock:80 }"];
-    "Losartán" [label="{ Losartán |   |   | MED012\nLosartán\n\nPrecio:5.10\nStock:110 |   |   |   |   |   }"];
-    "Metformina" [label="{ Metformina |   |   | MED008\nMetformina\n\nPrecio:1.80\nStock:300 |   |   |   |   |   }"];
-    "Omeprazol" [label="{ Omeprazol |   |   |   | MED007\nOmeprazol\n\nPrecio:6.35\nStock:120 | MED006\nOmeprazol\n\nPrecio:6.50\nStock:120 | MED005\nOmeprazol\n\nPrecio:6.00\nStock:120 |   |   }"];
-    "Paracetamol" [label="{ Paracetamol |   |   | MED001\nParacetamol\n\nPrecio:2.50\nStock:100 |   |   |   |   |   }"];
+    header [label="{ Laboratorio | AntibióticosSA | Calificacion | CardioPharm | Genérico | LabDia | LabPlux | LabVida | PharmaPlus | SaludSA }"];
+    "Amoxicilina" [label="{ Amoxicilina |   |   |   |   |   |   |   | MED003\nAmoxicilina\n\nPrecio:5.75\nStock:200 |   }"];
+    "Atorvastatina" [label="{ Atorvastatina |   |   | MED009\nAtorvastatina\n\nPrecio:7.50\nStock:60 |   |   |   |   |   |   }"];
+    "Azitromicina" [label="{ Azitromicina | MED011\nAzitromicina\n\nPrecio:8.90\nStock:90 |   |   |   |   |   |   |   |   }"];
+    "Calificacion" [label="{ Calificacion |   | MED013\nCalificacion\n\nPrecio:3.50\nStock:5000 |   |   |   |   |   |   |   }"];
+    "Diclofenaco" [label="{ Diclofenaco |   |   |   | MED010\nDiclofenaco\n\nPrecio:3.40\nStock:150 |   |   |   |   |   }"];
+    "Ibuprofeno" [label="{ Ibuprofeno |   |   |   | MED002\nIbuprofeno\n\nPrecio:3.00\nStock:3550 |   |   |   |   |   }"];
+    "Loratadina" [label="{ Loratadina |   |   |   |   |   |   |   |   | MED004\nLoratadina\n\nPrecio:4.20\nStock:80 }"];
+    "Losartán" [label="{ Losartán |   |   |   | MED012\nLosartán\n\nPrecio:5.10\nStock:110 |   |   |   |   |   }"];
+    "Metformina" [label="{ Metformina |   |   |   | MED008\nMetformina\n\nPrecio:1.80\nStock:300 |   |   |   |   |   }"];
+    "Omeprazol" [label="{ Omeprazol |   |   |   |   | MED007\nOmeprazol\n\nPrecio:6.35\nStock:570 | MED006\nOmeprazol\n\nPrecio:6.50\nStock:120 | MED005\nOmeprazol\n\nPrecio:6.00\nStock:120 |   |   }"];
+    "Paracetamol" [label="{ Paracetamol |   |   |   | MED001\nParacetamol\n\nPrecio:2.50\nStock:4600 |   |   |   |   |   }"];
 }

@@ -870,30 +870,30 @@ sub graficarMatrizMedicamentos {
 
 
 #-----------------------------FLUJO PRINCIPAL DEL PROGRAMA -------------------------------------------
-while(1){
-    my $rol  = elegir_rol();
-    last if $rol eq 'salida';
-    my $usuario = Login($rol);
-    $rolGeneral = $usuario;
-    if ($usuario){
-        # si el usuario existe, según el rol, desviaremos a uno u otro lugar
-        if($rol eq 'admin'){
-            menu_admin($usuario);
-        }
-        else{
-            menu_departamental($usuario);
-        }
-
-        arte2();
-        print "Cerrando sesión :3\n";
-    } 
-    else {
-        print " Lo siento!,no ha sido posible que inicies sesion. Lo volvemos a intentar? (s/n)\n";
-        chomp(my $respuesta = <STDIN>);
-        last if lc($respuesta) ne 's';
-    }
-
-
-}
-print "Nos veremos en otra ocasion!, espero que sea muy pronto :)\n";
-arte3();
+# while(1){
+#    my $rol  = elegir_rol();
+#    last if $rol eq 'salida';
+ #   my $usuario = Login($rol);
+  #  $rolGeneral = $usuario;
+#    if ($usuario){
+#        # si el usuario existe, según el rol, desviaremos a uno u otro lugar
+#        if($rol eq 'admin'){
+#            menu_admin($usuario);
+#        }
+#        else{
+#            menu_departamental($usuario);
+#        }
+#
+#        arte2();
+#        print "Cerrando sesión :3\n";
+#    } 
+#    else {
+#        print " Lo siento!,no ha sido posible que inicies sesion. Lo volvemos a intentar? (s/n)\n";
+#        chomp(my $respuesta = <STDIN>);
+#        last if lc($respuesta) ne 's';
+#    }
+#
+#
+#}
+#print "Nos veremos en otra ocasion!, espero que sea muy pronto :)\n";
+#arte3();

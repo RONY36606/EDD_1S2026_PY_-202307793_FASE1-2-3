@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDD MedTrack — Panel Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  :root {
+    --cyan:   #00ffe7;
+    --pink:   #ff2d78;
+    --yellow: #f5e642;
+    --dark:   #040d14;
+    --dark2:  #071520;
+    --dark3:  #0a1f30;
+    --border: rgba(0,255,231,0.18);
+    --text:   #a8d8e8;
+    --dim:    #3a6070;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    min-height:100vh;
+    background:var(--dark);
+    font-family:'Rajdhani',sans-serif;
+    color:var(--text);
+    overflow-x:hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background:
+      linear-gradient(180deg,rgba(0,255,231,0.02) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,255,231,0.02) 1px,transparent 1px);
+    background-size:45px 45px;
+    animation:gridScroll 25s linear infinite;
+    pointer-events:none; z-index:0;
+  }
+  @keyframes gridScroll { from{background-position:0 0} to{background-position:45px 45px} }
+
+  body::after {
+    content:'';
+    position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.1) 2px,rgba(0,0,0,0.1) 4px);
+    pointer-events:none; z-index:9999;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 30px;
+    background:rgba(4,13,20,0.95);
+    border-bottom:1px solid var(--border);
+    backdrop-filter:blur(12px);
+  }
+
+  .header-left { display:flex; align-items:center; gap:14px; }
+
+  .logo-box {
+    width:38px; height:38px;
+    border:2px solid var(--cyan); border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:900; color:var(--cyan);
+    text-shadow:0 0 12px var(--cyan);
+    box-shadow:0 0 14px rgba(0,255,231,0.3),inset 0 0 14px rgba(0,255,231,0.05);
+    position:relative;
+  }
+  .logo-box::after {
+    content:''; position:absolute; top:-4px; right:-4px;
+    width:8px; height:8px; background:var(--pink); border-radius:50%;
+    box-shadow:0 0 8px var(--pink); animation:blink 1.4s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+  .header-name {
+    font-family:'Orbitron',monospace; font-size:16px; font-weight:900;
+    color:var(--cyan); text-shadow:0 0 18px rgba(0,255,231,0.55); letter-spacing:4px;
+  }
+  .header-sub { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
+
+  .header-right { display:flex; align-items:center; gap:16px; }
+
+  .user-badge {
+    font-family:'Share Tech Mono',monospace; font-size:11px;
+    color:var(--cyan); padding:6px 14px;
+    border:1px solid rgba(0,255,231,0.2); border-radius:2px;
+    background:rgba(0,255,231,0.05);
+  }
+
+  .btn-logout {
+    font-family:'Orbitron',monospace; font-size:9px; font-weight:700;
+    letter-spacing:2px; padding:7px 14px;
+    border:1px solid rgba(255,45,120,0.3); border-radius:2px;
+    background:rgba(255,45,120,0.07); color:var(--pink);
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn-logout:hover { background:rgba(255,45,120,0.15); box-shadow:0 0 14px rgba(255,45,120,0.2); }
+
+  /* ── NAV ANCHORS ── */
+  .nav-bar {
+    position:sticky; top:62px; z-index:90;
+    display:flex; gap:0;
+    background:rgba(7,21,32,0.97);
+    border-bottom:1px solid var(--border);
+    backdrop-filter:blur(8px);
+    overflow-x:auto;
+  }
+
+  .nav-item {
+    font-family:'Orbitron',monospace; font-size:9px; font-weight:700;
+    letter-spacing:2px; padding:12px 20px;
+    color:var(--dim); cursor:pointer;
+    border:none; background:transparent;
+    border-bottom:2px solid transparent;
+    white-space:nowrap; transition:all 0.2s;
+  }
+  .nav-item:hover { color:var(--text); }
+  .nav-item.active { color:var(--cyan); border-bottom-color:var(--cyan); text-shadow:0 0 8px rgba(0,255,231,0.6); }
+
+  /* ── MAIN ── */
+  .main { position:relative; z-index:10; max-width:1100px; margin:0 auto; padding:30px 24px 60px; }
+
+  /* ── SECCIÓN ── */
+  .seccion {
+    margin-bottom:40px;
+    scroll-margin-top:120px;
+  }
+
+  .sec-header { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+
+  .sec-num {
+    font-family:'Orbitron',monospace; font-size:11px; font-weight:900;
+    color:var(--dark); background:var(--cyan);
+    padding:4px 10px; border-radius:2px; letter-spacing:1px;
+    box-shadow:0 0 12px rgba(0,255,231,0.4);
+  }
+
+  .sec-title {
+    font-family:'Orbitron',monospace; font-size:16px; font-weight:900;
+    color:var(--cyan); letter-spacing:3px;
+    text-shadow:0 0 15px rgba(0,255,231,0.4);
+  }
+
+  .sec-line { flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+  /* ── CARD SECCIÓN ── */
+  .card {
+    background:var(--dark2);
+    border:1px solid var(--border); border-radius:4px;
+    padding:24px;
+    box-shadow:0 0 30px rgba(0,255,231,0.04);
+    position:relative; overflow:hidden;
+  }
+  .card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,255,231,0.3),transparent);
+  }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border:2px dashed rgba(0,255,231,0.25);
+    border-radius:4px; padding:40px 24px;
+    text-align:center; cursor:pointer;
+    transition:all 0.3s; position:relative;
+    background:rgba(0,255,231,0.02);
+  }
+  .upload-zone:hover, .upload-zone.drag {
+    border-color:var(--cyan);
+    background:rgba(0,255,231,0.06);
+    box-shadow:0 0 30px rgba(0,255,231,0.1);
+  }
+
+  .upload-icon {
+    font-size:40px; margin-bottom:12px;
+    filter:drop-shadow(0 0 8px rgba(0,255,231,0.5));
+  }
+
+  .upload-title {
+    font-family:'Orbitron',monospace; font-size:13px; font-weight:700;
+    color:var(--cyan); letter-spacing:2px; margin-bottom:6px;
+  }
+
+  .upload-sub {
+    font-family:'Share Tech Mono',monospace; font-size:11px;
+    color:var(--dim); letter-spacing:1px;
+  }
+
+  #file-input { display:none; }
+
+  /* ── ARCHIVO SELECCIONADO ── */
+  .file-selected {
+    display:none;
+    margin-top:16px; padding:12px 16px;
+    background:rgba(0,255,231,0.05);
+    border:1px solid rgba(0,255,231,0.2); border-radius:2px;
+    font-family:'Share Tech Mono',monospace; font-size:12px;
+    color:var(--cyan);
+    align-items:center; justify-content:space-between;
+  }
+  .file-selected.show { display:flex; }
+
+  /* ── PREVIEW TABLE ── */
+  .preview-wrap {
+    display:none; margin-top:20px;
+  }
+  .preview-wrap.show { display:block; }
+
+  .preview-label {
+    font-family:'Share Tech Mono',monospace; font-size:10px;
+    color:var(--dim); letter-spacing:2px; margin-bottom:10px;
+  }
+
+  .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:4px; }
+
+  table {
+    width:100%; border-collapse:collapse;
+    font-family:'Share Tech Mono',monospace; font-size:11px;
+  }
+
+  thead tr { background:rgba(0,255,231,0.08); }
+
+  th {
+    padding:10px 14px; text-align:left;
+    color:var(--cyan); font-size:10px;
+    letter-spacing:2px; border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+
+  td {
+    padding:9px 14px; color:var(--text);
+    border-bottom:1px solid rgba(0,255,231,0.06);
+    white-space:nowrap;
+  }
+
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(0,255,231,0.03); }
+
+  .badge-stock {
+    padding:2px 8px; border-radius:2px; font-size:10px;
+    letter-spacing:1px;
+  }
+  .badge-ok  { background:rgba(0,255,231,0.1); color:var(--cyan); border:1px solid rgba(0,255,231,0.2); }
+  .badge-low { background:rgba(255,45,120,0.1); color:var(--pink); border:1px solid rgba(255,45,120,0.2); }
+
+  /* ── BOTONES ── */
+  .btn {
+    padding:11px 24px; border-radius:2px; border:1px solid;
+    font-family:'Orbitron',monospace; font-size:10px; font-weight:700;
+    letter-spacing:3px; cursor:pointer; transition:all 0.2s;
+    position:relative; overflow:hidden;
+  }
+  .btn::before {
+    content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);
+    transition:left 0.4s;
+  }
+  .btn:hover::before { left:100%; }
+
+  .btn-cyan {
+    background:rgba(0,255,231,0.07); border-color:var(--cyan);
+    color:var(--cyan); text-shadow:0 0 10px rgba(0,255,231,0.5);
+  }
+  .btn-cyan:hover { background:rgba(0,255,231,0.14); box-shadow:0 0 24px rgba(0,255,231,0.2); transform:translateY(-1px); }
+  .btn-cyan:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+
+  .btn-pink {
+    background:rgba(255,45,120,0.07); border-color:var(--pink);
+    color:var(--pink); text-shadow:0 0 10px rgba(255,45,120,0.5);
+  }
+  .btn-pink:hover { background:rgba(255,45,120,0.14); box-shadow:0 0 24px rgba(255,45,120,0.2); transform:translateY(-1px); }
+
+  .btn-row { display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; }
+
+  /* ── MENSAJES ── */
+  .msg {
+    font-family:'Share Tech Mono',monospace; font-size:11px;
+    padding:10px 14px; border-radius:2px; margin-top:14px;
+    display:none; letter-spacing:1px;
+  }
+  .msg.error { background:rgba(255,45,120,0.08); border:1px solid rgba(255,45,120,0.3); color:var(--pink); display:block; }
+  .msg.ok    { background:rgba(0,255,231,0.06);  border:1px solid rgba(0,255,231,0.3);  color:var(--cyan); display:block; }
+
+  /* ── STATS ── */
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+
+  .stat-card {
+    background:rgba(0,255,231,0.03); border:1px solid rgba(0,255,231,0.12);
+    border-radius:4px; padding:18px 20px;
+    position:relative; overflow:hidden;
+  }
+  .stat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(0,255,231,0.3),transparent);
+  }
+  .stat-label { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:2px; margin-bottom:8px; }
+  .stat-val   { font-family:'Orbitron',monospace; font-size:26px; font-weight:900; color:var(--cyan); text-shadow:0 0 15px rgba(0,255,231,0.4); }
+  .stat-val.pink { color:var(--pink); text-shadow:0 0 15px rgba(255,45,120,0.4); }
+  .stat-val.yellow { color:var(--yellow); text-shadow:0 0 15px rgba(245,230,66,0.4); }
+
+  /* Spinner */
+  .spin { display:inline-block; width:12px; height:12px; border:2px solid rgba(0,255,231,0.2); border-top-color:var(--cyan); border-radius:50%; animation:spinR 0.6s linear infinite; margin-right:8px; vertical-align:middle; }
+  @keyframes spinR { to{transform:rotate(360deg)} }
+
+  /* ── PRÓXIMAMENTE ── */
+  .coming-soon {
+    border:1px dashed rgba(0,255,231,0.1); border-radius:4px;
+    padding:30px; text-align:center;
+    font-family:'Share Tech Mono',monospace; font-size:12px;
+    color:var(--dim); letter-spacing:2px;
+  }
+  .coming-soon span { color:var(--yellow); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--dark); }
+  ::-webkit-scrollbar-thumb { background:rgba(0,255,231,0.2); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(0,255,231,0.4); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-box">+</div>
+    <div>
+      <div class="header-name">EDD MEDTRACK</div>
+      <div class="header-sub">> PANEL DE ADMINISTRADOR</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="user-badge" id="user-badge">// ADMIN</div>
+    <button class="btn-logout" onclick="cerrarSesion()">CERRAR SESIÓN</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-bar">
+  <button class="nav-item active" onclick="scrollTo('sec-carga')">01 // CARGA MASIVA</button>
+  <button class="nav-item" onclick="scrollTo('sec-medicamentos')">02 // MEDICAMENTOS</button>
+  <button class="nav-item" onclick="scrollTo('sec-proveedores')">03 // PROVEEDORES</button>
+  <button class="nav-item" onclick="scrollTo('sec-solicitudes')">04 // SOLICITUDES</button>
+  <button class="nav-item" onclick="scrollTo('sec-personal')">05 // PERSONAL (AVL)</button>
+  <button class="nav-item" onclick="scrollTo('sec-equipos')">06 // EQUIPOS (BST)</button>
+  <button class="nav-item" onclick="scrollTo('sec-suministros')">07 // SUMINISTROS (B)</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- STATS -->
+  <div class="stats-row" style="margin-bottom:32px;" id="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">// MEDICAMENTOS</div>
+      <div class="stat-val" id="stat-meds">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// STOCK BAJO</div>
+      <div class="stat-val pink" id="stat-bajo">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// PROVEEDORES</div>
+      <div class="stat-val" id="stat-provs">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// SOLICITUDES PEND.</div>
+      <div class="stat-val yellow" id="stat-sols">0</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 01 — CARGA MASIVA CSV              -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-carga">
+    <div class="sec-header">
+      <div class="sec-num">01</div>
+      <div class="sec-title">CARGA MASIVA</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="card">
+      <!-- Zona de upload -->
+      <div class="upload-zone" id="upload-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="onDrop(event)">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">SUBIR ARCHIVO JSON</div>
+        <div class="upload-sub">Click aquí o arrastra tu archivo .json de medicamentos</div>
+        
+      </div>
+      <input type="file" id="file-input" accept=".json" onchange="archivoSeleccionado(event)">
+
+      <!-- Archivo seleccionado -->
+      <div class="file-selected" id="file-selected">
+        <span id="file-name">archivo.csv</span>
+        <span style="color:var(--dim);font-size:10px;" id="file-size"></span>
+      </div>
+
+      <!-- Preview, en el id del preview body -->
+      <div class="preview-wrap" id="preview-wrap">
+        <div class="preview-label">> PREVIEW — PRIMERAS 5 FILAS DEL ARCHIVO</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>CÓDIGO</th><th>NOMBRE</th><th>ACTIVO</th>
+                <th>LABORATORIO</th><th>STOCK</th><th>VENCIMIENTO</th>
+                <th>PRECIO</th><th>NIV.MÍN</th>
+              </tr>
+            </thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="msg" id="carga-msg"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-cyan" id="btn-cargar" onclick="cargarCSV()" disabled>
+          PROCESAR JSON
+        </button>
+        <button class="btn btn-pink" onclick="limpiarUpload()">
+          LIMPIAR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 02 — INVENTARIO MEDICAMENTOS       -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-medicamentos">
+    <div class="sec-header">
+      <div class="sec-num">02</div>
+      <div class="sec-title">INVENTARIO MEDICAMENTOS</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row" style="margin-top:0; margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="cargarMedicamentos()">ACTUALIZAR LISTA</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>CÓDIGO</th><th>NOMBRE</th><th>ACTIVO</th>
+              <th>LABORATORIO</th><th>STOCK</th><th>VENCIMIENTO</th>
+              <th>PRECIO</th><th>NIV.MÍN</th><th>ESTADO</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-meds">
+            <tr><td colspan="9" style="text-align:center;color:var(--dim);padding:20px;">
+              > PRESIONA "ACTUALIZAR LISTA" PARA CARGAR LOS DATOS
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 03 — PROVEEDORES                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-proveedores">
+    <div class="sec-header">
+      <div class="sec-num">03</div>
+      <div class="sec-title">PROVEEDORES</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <div class="coming-soon">> SECCIÓN EN DESARROLLO //<br><span>PRÓXIMAMENTE: GESTIÓN DE PROVEEDORES</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 04 — SOLICITUDES                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-solicitudes">
+    <div class="sec-header">
+      <div class="sec-num">04</div>
+      <div class="sec-title">SOLICITUDES REABASTECIMIENTO</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <div class="coming-soon">> SECCIÓN EN DESARROLLO //<br><span>PRÓXIMAMENTE: APROBAR / RECHAZAR SOLICITUDES</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 05 — PERSONAL AVL                  -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-personal">
+    <div class="sec-header">
+      <div class="sec-num">05</div>
+      <div class="sec-title">PERSONAL MÉDICO // AVL</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <div class="coming-soon">> ÁRBOL AVL — FASE 2 //<br><span>PRÓXIMAMENTE: GESTIÓN DE PERSONAL MÉDICO</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 06 — EQUIPOS BST                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-equipos">
+    <div class="sec-header">
+      <div class="sec-num">06</div>
+      <div class="sec-title">EQUIPOS MÉDICOS // BST</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <div class="coming-soon">> ÁRBOL BST — FASE 2 //<br><span>PRÓXIMAMENTE: GESTIÓN DE EQUIPOS MÉDICOS</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SEC 07 — SUMINISTROS ÁRBOL B           -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="seccion" id="sec-suministros">
+    <div class="sec-header">
+      <div class="sec-num">07</div>
+      <div class="sec-title">SUMINISTROS // ÁRBOL B ORD.4</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <div class="coming-soon">> ÁRBOL B ORDEN 4 — FASE 2 //<br><span>PRÓXIMAMENTE: GESTIÓN DE SUMINISTROS</span></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── SESIÓN ──
+const sesion = JSON.parse(sessionStorage.getItem('usuario') || '{}');
+if (!sesion.ok || sesion.rol !== 'admin') window.location.href = '/';
+document.getElementById('user-badge').textContent = '// ' + (sesion.nombre || 'ADMIN').toUpperCase();
+
+// ── NAV SCROLL ──
+function scrollTo(id) {
+  document.getElementById(id).scrollIntoView({ behavior:'smooth' });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// Marcar nav activo al scrollear
+const secciones = ['sec-carga','sec-medicamentos','sec-proveedores','sec-solicitudes','sec-personal','sec-equipos','sec-suministros'];
+window.addEventListener('scroll', () => {
+  let actual = secciones[0];
+  secciones.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top <= 140) actual = id;
+  });
+  const idx = secciones.indexOf(actual);
+  document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===idx));
+});
+
+// ── LOGOUT ──
+function cerrarSesion() {
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+
+// ── DRAG & DROP ──
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag');
+}
+function dragLeave(e) {
+  document.getElementById('upload-zone').classList.remove('drag');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) procesarArchivo(file);
+}
+
+// ── ARCHIVO SELECCIONADO ──
+function archivoSeleccionado(e) {
+  const file = e.target.files[0];
+  if (file) procesarArchivo(file);
+}
+
+let archivoActual = null;
+
+function procesarArchivo(file) {
+  if (!file.name.endsWith('.json')) {
+    mostrarMsg('carga-msg', 'error', '> ERROR :: EL ARCHIVO DEBE SER .JSON');
+    return;
+}
+
+  archivoActual = file;
+
+  // Mostrar nombre y tamaño
+  document.getElementById('file-name').textContent = '> ' + file.name;
+  document.getElementById('file-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  document.getElementById('file-selected').classList.add('show');
+
+  // Leer y hacer preview
+  const reader = new FileReader();
+reader.onload = (e) => {
+    try {
+        const json = JSON.parse(e.target.result);
+        const tbody = document.getElementById('preview-body');
+        tbody.innerHTML = '';
+
+        // Contar totales del JSON
+        let totalMeds = 0, totalEquipos = 0, totalSums = 0, totalProvs = 0;
+        for (const prov of json.proveedor || []) {
+            totalProvs++;
+            for (const item of prov.entrega || []) {
+                const tipo = (item.tipo || '').toUpperCase();
+                if (tipo === 'MEDICAMENTO') totalMeds++;
+                else if (tipo === 'EQUIPO')  totalEquipos++;
+                else if (tipo === 'SUMINISTRO') totalSums++;
+            }
+        }
+
+        // Mostrar resumen en la tabla de preview
+        const filas = [
+            ['PROVEEDORES',  totalProvs,  ''],
+            ['MEDICAMENTOS', totalMeds,   'MED'],
+            ['EQUIPOS',      totalEquipos,'EQU'],
+            ['SUMINISTROS',  totalSums,   'SUM'],
+        ];
+
+        for (const [tipo, cant, prefijo] of filas) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td colspan="2">${tipo}</td>
+                <td></td>
+                <td>${prefijo}</td>
+                <td><span class="badge-stock badge-ok">${cant}</span></td>
+                <td colspan="3">ítems detectados</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        document.getElementById('preview-wrap').classList.add('show');
+        document.getElementById('btn-cargar').disabled = false;
+        ocultarMsg('carga-msg');
+    } catch(e) {
+        mostrarMsg('carga-msg', 'error', '> ERROR :: EL ARCHIVO NO ES UN JSON VÁLIDO');
+    }
+};
+reader.readAsText(file);
+}
+
+// ── CARGAR CSV AL SERVIDOR ──
+async function cargarCSV() {
+  if (!archivoActual) return;
+
+  const btn = document.getElementById('btn-cargar');
+  btn.innerHTML = '<span class="spin"></span>PROCESANDO...';
+  btn.disabled = true;
+
+  //este será el json que se enviará a perl
+  const formData = new FormData();
+  formData.append('json', archivoActual);
+
+  try {
+    const res  = await fetch('/carga-masiva', { method:'POST', body: formData });
+    const data = await res.json();
+
+    if (data.ok) {
+     mostrarMsg('carga-msg', 'ok',
+    `> CARGA EXITOSA :: ${data.medicamentos} MEDICAMENTOS | ${data.equipos} EQUIPOS | ${data.suministros} SUMINISTROS | ${data.errores.length} ERRORES`
+);
+      cargarStats();
+      cargarMedicamentos();
+    } else {
+      mostrarMsg('carga-msg', 'error', '> ERROR :: ' + (data.mensaje || '').toUpperCase());
+    }
+  } catch(e) {
+    mostrarMsg('carga-msg', 'error', '> ERROR :: FALLO AL CONECTAR CON EL SERVIDOR');
+  }
+
+  btn.innerHTML = 'PROCESAR CSV';
+  btn.disabled = false;
+}
+
+function limpiarUpload() {
+  archivoActual = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('file-selected').classList.remove('show');
+  document.getElementById('preview-wrap').classList.remove('show');
+  document.getElementById('btn-cargar').disabled = true;
+  ocultarMsg('carga-msg');
+}
+
+// ── CARGAR MEDICAMENTOS ──
+async function cargarMedicamentos() {
+  try {
+    const res  = await fetch('/medicamentos');
+    const data = await res.json();
+    const tbody = document.getElementById('tabla-meds');
+    tbody.innerHTML = '';
+
+    if (!data.medicamentos || data.medicamentos.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--dim);padding:20px;">> SIN REGISTROS</td></tr>';
+      return;
+    }
+
+    data.medicamentos.forEach(m => {
+      const bajo = parseInt(m.stock) < parseInt(m.minimo);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m.codigo}</td>
+        <td>${m.nombre}</td>
+        <td>${m.activo}</td>
+        <td>${m.lab}</td>
+        <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${m.stock}</span></td>
+        <td>${m.vence}</td>
+        <td>Q${m.precio}</td>
+        <td>${m.minimo}</td>
+        <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── STATS ──
+async function cargarStats() {
+  try {
+    const res  = await fetch('/medicamentos');
+    const data = await res.json();
+    const meds = data.medicamentos || [];
+    document.getElementById('stat-meds').textContent = meds.length;
+    document.getElementById('stat-bajo').textContent = meds.filter(m => parseInt(m.stock) < parseInt(m.minimo)).length;
+  } catch(e) {}
+}
+
+// ── HELPERS ──
+function mostrarMsg(id, tipo, txt) {
+  const el = document.getElementById(id);
+  el.className = 'msg ' + tipo;
+  el.textContent = txt;
+}
+function ocultarMsg(id) {
+  const el = document.getElementById(id);
+  el.className = 'msg';
+  el.style.display = 'none';
+}
+
+// Al cargar la página
+cargarStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDD MedTrack — Hospital General San Carlos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  :root {
+    --cyan:   #00ffe7;
+    --pink:   #ff2d78;
+    --yellow: #f5e642;
+    --dark:   #040d14;
+    --dark2:  #071520;
+    --glass:  rgba(0,255,231,0.04);
+    --border: rgba(0,255,231,0.18);
+    --text:   #a8d8e8;
+    --dim:    #3a6070;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    min-height: 100vh;
+    background: var(--dark);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Grid animado de fondo */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(0,255,231,0.025) 1px, transparent 1px),
+      linear-gradient(90deg,  rgba(0,255,231,0.025) 1px, transparent 1px);
+    background-size: 45px 45px;
+    animation: gridScroll 25s linear infinite;
+    pointer-events: none; z-index: 0;
+  }
+
+  @keyframes gridScroll {
+    from { background-position: 0 0; }
+    to   { background-position: 45px 45px; }
+  }
+
+  /* Scanlines */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
+    );
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* Glows de esquina */
+  .glow { position:fixed; border-radius:50%; filter:blur(130px); pointer-events:none; z-index:0; }
+  .glow.tl { top:-120px; left:-120px; width:500px; height:500px; background:rgba(0,255,231,0.06); }
+  .glow.br { bottom:-120px; right:-120px; width:500px; height:500px; background:rgba(255,45,120,0.07); }
+
+  /* ── HEADER ── */
+  .header {
+    position:relative; z-index:10;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 30px;
+    background: rgba(4,13,20,0.92);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+
+  .header-left { display:flex; align-items:center; gap:14px; }
+
+  .logo-box {
+    width:40px; height:40px;
+    border: 2px solid var(--cyan);
+    border-radius: 4px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 14px rgba(0,255,231,0.35), inset 0 0 14px rgba(0,255,231,0.05);
+    position: relative;
+    font-size: 22px; font-weight:900; color: var(--cyan);
+    text-shadow: 0 0 12px var(--cyan);
+  }
+
+  .logo-box::after {
+    content:'';
+    position:absolute; top:-4px; right:-4px;
+    width:8px; height:8px;
+    background: var(--pink);
+    border-radius:50%;
+    box-shadow: 0 0 8px var(--pink);
+    animation: blink 1.4s infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+  .header-name {
+    font-family:'Orbitron',monospace;
+    font-size:17px; font-weight:900;
+    color: var(--cyan);
+    text-shadow: 0 0 18px rgba(0,255,231,0.55);
+    letter-spacing:4px;
+  }
+
+  .header-sub {
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px; color:var(--dim); letter-spacing:2px;
+  }
+
+  .header-right {
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px; color:var(--dim);
+    text-align:right; letter-spacing:1px; line-height:1.8;
+  }
+
+  .dot-live {
+    display:inline-block; width:6px; height:6px;
+    background:var(--cyan); border-radius:50%;
+    box-shadow:0 0 6px var(--cyan);
+    margin-right:6px;
+    animation:blink 1s infinite;
+  }
+
+  /* ── MAIN ── */
+  .main {
+    position:relative; z-index:10;
+    display:flex; align-items:center; justify-content:center;
+    min-height: calc(100vh - 62px - 38px);
+    padding: 30px 20px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    width:100%; max-width:460px;
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow:
+      0 0 50px rgba(0,255,231,0.07),
+      0 0 100px rgba(0,255,231,0.03),
+      inset 0 0 40px rgba(0,255,231,0.015);
+    position:relative; overflow:hidden;
+    animation: fadeUp 0.55s cubic-bezier(.16,1,.3,1);
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(28px) scale(0.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* Línea superior animada */
+  .card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--pink), transparent);
+    animation: topLine 4s ease-in-out infinite;
+  }
+
+  @keyframes topLine {
+    0%,100%{ opacity:0.3; background-position:0% 50%; }
+    50%    { opacity:1;   background-position:100% 50%; }
+  }
+
+  /* Esquinas */
+  .cc { position:absolute; width:14px; height:14px; border-color:var(--cyan); border-style:solid; opacity:0.5; }
+  .cc.tl { top:8px; left:8px;  border-width:1px 0 0 1px; }
+  .cc.tr { top:8px; right:8px; border-width:1px 1px 0 0; }
+  .cc.bl { bottom:8px; left:8px;  border-width:0 0 1px 1px; }
+  .cc.br { bottom:8px; right:8px; border-width:0 1px 1px 0; }
+
+  /* ── TABS ── */
+  .tabs {
+    display:flex;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.35);
+  }
+
+  .tab {
+    flex:1; padding:14px 8px;
+    font-family:'Orbitron',monospace;
+    font-size:9px; font-weight:700; letter-spacing:2px;
+    color:var(--dim); background:transparent; border:none;
+    cursor:pointer; transition:all 0.2s;
+    border-bottom: 2px solid transparent; margin-bottom:-1px;
+  }
+
+  .tab.active {
+    color:var(--cyan);
+    border-bottom-color: var(--cyan);
+    text-shadow: 0 0 10px rgba(0,255,231,0.7);
+  }
+
+  .tab:hover:not(.active) { color:var(--text); }
+
+  /* ── PANELS ── */
+  .panel { display:none; padding:28px 30px 30px; }
+  .panel.active { display:block; }
+
+  .panel-title {
+    font-family:'Orbitron',monospace;
+    font-size:20px; font-weight:900; letter-spacing:4px;
+    color:var(--cyan);
+    text-shadow: 0 0 25px rgba(0,255,231,0.5);
+    margin-bottom:2px;
+    position:relative;
+  }
+
+  /* Glitch */
+  .panel-title::before, .panel-title::after {
+    content: attr(data-text);
+    position:absolute; top:0; left:0;
+    font-family:'Orbitron',monospace;
+    font-size:inherit; font-weight:inherit; letter-spacing:inherit;
+  }
+  .panel-title::before {
+    color:var(--pink);
+    clip-path: polygon(0 0,100% 0,100% 33%,0 33%);
+    animation: glitchA 5s infinite;
+  }
+  .panel-title::after {
+    color:#00b3ff;
+    clip-path: polygon(0 66%,100% 66%,100% 100%,0 100%);
+    animation: glitchB 5s infinite;
+  }
+
+  @keyframes glitchA {
+    0%,88%,100%{ transform:none; opacity:0; }
+    90%{ transform:translate(-3px,0); opacity:0.8; }
+    92%{ transform:translate(3px,0);  opacity:0.8; }
+    94%{ transform:translate(-1px,0); opacity:0.6; }
+  }
+
+  @keyframes glitchB {
+    0%,88%,100%{ transform:none; opacity:0; }
+    91%{ transform:translate(3px,0);  opacity:0.8; }
+    93%{ transform:translate(-3px,0); opacity:0.8; }
+    95%{ transform:translate(2px,0);  opacity:0.6; }
+  }
+
+  .panel-sub {
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px; color:var(--dim); letter-spacing:2px;
+    margin-bottom:24px;
+  }
+
+  /* ── CAMPOS ── */
+  .campo { margin-bottom:16px; }
+
+  .campo label {
+    display:block;
+    font-family:'Share Tech Mono',monospace;
+    font-size:10px; color:var(--cyan); letter-spacing:2px;
+    margin-bottom:7px; opacity:0.8;
+  }
+
+  .campo input, .campo select {
+    width:100%; padding:11px 14px;
+    background: rgba(0,255,231,0.03);
+    border: 1px solid rgba(0,255,231,0.18);
+    border-radius:2px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:13px; color:var(--cyan);
+    outline:none; transition:all 0.2s;
+  }
+
+  .campo input::placeholder { color:var(--dim); }
+
+  .campo input:focus, .campo select:focus {
+    border-color:var(--cyan);
+    background:rgba(0,255,231,0.06);
+    box-shadow:0 0 18px rgba(0,255,231,0.1);
+  }
+
+  .campo select option { background:var(--dark2); color:var(--cyan); }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* ── BOTONES ── */
+  .btn {
+    width:100%; padding:13px;
+    border-radius:2px; border:1px solid;
+    font-family:'Orbitron',monospace;
+    font-size:11px; font-weight:700; letter-spacing:3px;
+    cursor:pointer; transition:all 0.2s; margin-top:10px;
+    position:relative; overflow:hidden;
+  }
+
+  .btn::before {
+    content:''; position:absolute; top:0; left:-100%;
+    width:100%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);
+    transition:left 0.4s;
+  }
+  .btn:hover::before { left:100%; }
+
+  .btn-cyan {
+    background:rgba(0,255,231,0.07); border-color:var(--cyan);
+    color:var(--cyan); text-shadow:0 0 10px rgba(0,255,231,0.5);
+    box-shadow:0 0 18px rgba(0,255,231,0.1);
+  }
+  .btn-cyan:hover {
+    background:rgba(0,255,231,0.14);
+    box-shadow:0 0 28px rgba(0,255,231,0.25);
+    transform:translateY(-1px);
+  }
+
+  .btn-pink {
+    background:rgba(255,45,120,0.07); border-color:var(--pink);
+    color:var(--pink); text-shadow:0 0 10px rgba(255,45,120,0.5);
+    box-shadow:0 0 18px rgba(255,45,120,0.1);
+  }
+  .btn-pink:hover {
+    background:rgba(255,45,120,0.14);
+    box-shadow:0 0 28px rgba(255,45,120,0.25);
+    transform:translateY(-1px);
+  }
+
+  /* ── MENSAJES ── */
+  .msg {
+    font-family:'Share Tech Mono',monospace;
+    font-size:11px; letter-spacing:1px;
+    padding:10px 14px; border-radius:2px;
+    margin-top:10px; display:none;
+  }
+  .msg.error { background:rgba(255,45,120,0.08); border:1px solid rgba(255,45,120,0.3); color:var(--pink); display:block; }
+  .msg.ok    { background:rgba(0,255,231,0.06);  border:1px solid rgba(0,255,231,0.3);  color:var(--cyan); display:block; }
+
+  /* ── INFO ── */
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  .info-card {
+    background:rgba(0,255,231,0.02);
+    border:1px solid rgba(0,255,231,0.1);
+    border-radius:2px; padding:14px;
+  }
+
+  .info-card h4 {
+    font-family:'Orbitron',monospace;
+    font-size:9px; font-weight:700; letter-spacing:2px;
+    color:var(--cyan); margin-bottom:10px;
+    text-shadow:0 0 8px rgba(0,255,231,0.4);
+  }
+
+  .info-card p {
+    font-family:'Share Tech Mono',monospace;
+    font-size:11px; color:var(--text); line-height:1.75;
+  }
+
+  .badge {
+    display:inline-block;
+    font-family:'Share Tech Mono',monospace; font-size:9px;
+    padding:2px 8px; border-radius:2px; margin:2px 2px 0 0;
+    letter-spacing:1px;
+  }
+  .badge.c { background:rgba(0,255,231,0.08); border:1px solid rgba(0,255,231,0.2); color:var(--cyan); }
+  .badge.p { background:rgba(255,45,120,0.08); border:1px solid rgba(255,45,120,0.2); color:var(--pink); }
+
+  .sep { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); margin:20px 0; }
+
+  /* Spinner */
+  .spin {
+    display:inline-block; width:12px; height:12px;
+    border:2px solid rgba(0,255,231,0.2); border-top-color:var(--cyan);
+    border-radius:50%; animation:spinR 0.6s linear infinite;
+    margin-right:8px; vertical-align:middle;
+  }
+  @keyframes spinR { to{transform:rotate(360deg)} }
+
+  /* ── FOOTER ── */
+  .footer {
+    position:relative; z-index:10;
+    text-align:center; padding:10px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:9px; color:var(--dim); letter-spacing:2px;
+    border-top:1px solid rgba(0,255,231,0.05);
+  }
+</style>
+</head>
+<body>
+
+<div class="glow tl"></div>
+<div class="glow br"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-box">+</div>
+    <div>
+      <div class="header-name">EDD MEDTRACK-F2</div>
+      <div class="header-sub">> SISTEMA DE GESTIÓN HOSPITALARIA v2.0</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="dot-live"></span>SISTEMA ACTIVO<br>
+    HOSPITAL GENERAL SAINT CHARLES
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="card">
+    <div class="cc tl"></div><div class="cc tr"></div>
+    <div class="cc bl"></div><div class="cc br"></div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="tab('login')">// LOGIN</button>
+      <button class="tab" onclick="tab('registro')">// REGISTRO</button>
+      <button class="tab" onclick="tab('info')">// SISTEMA</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="panel active" id="panel-login">
+      <div class="panel-title" data-text="ACCESO">ACCESO</div>
+      <div class="panel-sub">> AUTENTICACIÓN REQUERIDA — INGRESE CREDENCIALES</div>
+
+      <div class="campo">
+        <label>// USUARIO / N° DE COLEGIO</label>
+        <input type="text" id="lu" placeholder="AdminHospital  ó  COL-XXXXX" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="campo">
+        <label>// CONTRASEÑA</label>
+        <input type="password" id="lp" placeholder="••••••••••••">
+      </div>
+
+      <div class="msg" id="lmsg"></div>
+      <button class="btn btn-cyan" onclick="doLogin()" id="btnLogin">INICIAR SESIÓN</button>
+    </div>
+
+    <!-- REGISTRO -->
+    <div class="panel" id="panel-registro">
+      <div class="panel-title" data-text="REGISTRO">REGISTRO</div>
+      <div class="panel-sub">> NUEVO USUARIO DEPARTAMENTAL</div>
+
+      <div class="grid2">
+        <div class="campo">
+          <label>// N° COLEGIO *</label>
+          <input type="text" id="rc" placeholder="COL-XXXXX" spellcheck="false">
+        </div>
+        <div class="campo">
+          <label>// TIPO *</label>
+          <select id="rt">
+            <option value="">SELECCIONAR...</option>
+            <option value="TIPO-01">TIPO-01 — MED. GENERAL</option>
+            <option value="TIPO-02">TIPO-02 — ESPECIALISTA</option>
+            <option value="TIPO-03">TIPO-03 — ENFERMERO/A</option>
+            <option value="TIPO-04">TIPO-04 — TEC. LAB</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>// NOMBRE COMPLETO *</label>
+        <input type="text" id="rn" placeholder="Nombre completo del profesional">
+      </div>
+
+      <div class="grid2">
+        <div class="campo">
+          <label>// DEPARTAMENTO *</label>
+          <select id="rd">
+            <option value="">SELECCIONAR...</option>
+            <option value="DEP-MED">DEP-MED — MEDICINA</option>
+            <option value="DEP-CIR">DEP-CIR — CIRUGÍA</option>
+            <option value="DEP-LAB">DEP-LAB — LABORATORIO</option>
+            <option value="DEP-FAR">DEP-FAR — FARMACIA</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>// ESPECIALIDAD</label>
+          <input type="text" id="re" placeholder="Opcional">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>// CONTRASEÑA *</label>
+        <input type="password" id="rp" placeholder="••••••••••••">
+      </div>
+
+      <div class="msg" id="rmsg"></div>
+      <button class="btn btn-pink" onclick="doReg()">REGISTRAR USUARIO</button>
+    </div>
+
+    <!-- INFO -->
+    <div class="panel" id="panel-info">
+      <div class="panel-title" data-text="SISTEMA">SISTEMA</div>
+      <div class="panel-sub">> EDD MEDTRACK F2 — INFO DEL DESARROLLADOR</div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h4>// DESARROLLADOR</h4>
+          <p>NOMBRE: Rony Javier Alvarez Ordoñez<br>CARNET: 202307793<br>SECCIÓN: A<br>CURSO: EDD</p>
+        </div>
+        <div class="info-card">
+          <h4>// INSTITUCIÓN</h4>
+          <p>USAC — FIUSAC<br>ECYS — 2026<br>HOSPITAL GENERAL<br>SAINT CHARLES</p>
+        </div>
+        <div class="info-card">
+          <h4>// ESTRUCTURAS F1</h4>
+          <p>
+            <span class="badge c">LISTA DOBLE</span>
+            <span class="badge c">LISTA CIRC.</span>
+            <span class="badge c">L.CIRC.DOBLE</span>
+            <span class="badge c">MATRIZ DISP.</span>
+          </p>
+        </div>
+        <div class="info-card">
+          <h4>// ESTRUCTURAS F2</h4>
+          <p>
+            <span class="badge p">ÁRBOL AVL</span>
+            <span class="badge p">ÁRBOL BST</span>
+            <span class="badge p">ÁRBOL B ORD.4</span>
+            <span class="badge p">GRAPHVIZ</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);text-align:center;letter-spacing:2px;">
+        > EDD_MEDTRACK_F2 // USAC_FIUSAC // 2026_
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">> EDD MEDTRACK F2  // UNIVERSIDAD SAN CARLOS DE GUATEMALA // FIUSAC // 2026</div>
+
+
+
+<!-- JAVASCRIPT CON FUNCIONALIDADES DEL LOGIN -->
+
+
+
+<script>
+  function tab(id) {
+    const ids = ['login','registro','info'];
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-'+id).classList.add('active');
+  }
+
+  async function doLogin() {
+    //usaurio
+    const u = document.getElementById('lu').value.trim();
+    //contarseña
+    const p = document.getElementById('lp').value;
+    const msg = document.getElementById('lmsg');
+    const btn = document.getElementById('btnLogin');
+
+    if (!u || !p) { showMsg(msg,'error','> ERROR :: COMPLETE TODOS LOS CAMPOS'); return; }
+
+    btn.innerHTML = '<span class="spin"></span>AUTENTICANDO...';
+    //en lo que verifica, desactivamos el botón
+    btn.disabled = true;
+
+    try {
+        //dentro del try catch es que llamamos al backend y mandamos la info
+        //r es la conexión al backend
+      const r = await fetch('/login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({usuario:u, password:p})
+      });
+      const d = await r.json();
+
+      //si el valor de ok es 1
+      if (d.ok) {
+        sessionStorage.setItem('usuario', JSON.stringify(d));
+        showMsg(msg,'ok','> ACCESO CONCEDIDO :: BIENVENIDO ' + d.nombre.toUpperCase());
+        setTimeout(() => { window.location.href = d.rol==='admin' ? '/admin.html' : '/medico.html'; }, 900);
+      } else {
+        showMsg(msg,'error','> ACCESO DENEGADO :: ' + (d.mensaje||'CREDENCIALES INCORRECTAS').toUpperCase());
+        document.getElementById('lp').value = '';
+      }
+    } catch(e) {
+      showMsg(msg,'error','> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+
+    btn.innerHTML = 'INICIAR SESIÓN';
+    btn.disabled = false;
+  }
+
+  async function doReg() {
+    const c=document.getElementById('rc').value.trim();
+    const n=document.getElementById('rn').value.trim();
+    const t=document.getElementById('rt').value;
+    const d=document.getElementById('rd').value;
+    const e=document.getElementById('re').value.trim();
+    const p=document.getElementById('rp').value;
+    const msg=document.getElementById('rmsg');
+
+    if(!c||!n||!t||!d||!p){ showMsg(msg,'error','> ERROR :: COMPLETE LOS CAMPOS OBLIGATORIOS (*)'); return; }
+
+    try {
+      const r = await fetch('/registro', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({numero_colegio:c,nombre:n,tipo_usuario:t,departamento:d,especialidad:e,contrasena:p})
+      });
+      const res = await r.json();
+
+      if(res.ok){
+        showMsg(msg,'ok','> REGISTRO EXITOSO :: USUARIO '+c.toUpperCase()+' CREADO');
+        ['rc','rn','re','rp'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('rt').value='';
+        document.getElementById('rd').value='';
+      } else {
+        showMsg(msg,'error','> ERROR :: '+(res.mensaje||'').toUpperCase());
+      }
+    } catch(e){ showMsg(msg,'error','> ERROR :: SIN CONEXIÓN CON EL SERVIDOR'); }
+  }
+
+  function showMsg(el,tipo,txt){ el.className='msg '+tipo; el.textContent=txt; }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    ['lu','lp'].forEach(id=>{
+      document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+    });
+  });
+</script>
+</body>
+</html>
