@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 #Este es parecido a los otros nodos, menos por la altura
-sub new{
+
     sub new {
     my ($class, $clave, $valor)= @_;
     my $self = {
@@ -14,4 +14,5 @@ sub new{
     };
     return bless $self, $class;
 }
-}
+
+1;

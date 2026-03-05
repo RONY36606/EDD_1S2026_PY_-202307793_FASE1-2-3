@@ -1,7 +1,7 @@
 package arbolB;
 use strict;
 use warnings;
-use constant ORDEN => 4;  # max 3 claves, max 4 hijos por nodo
+my $ORDEN = 4;  # max 3 claves, max 4 hijos por nodo
 
 require 'nodoB.pl';
 
@@ -39,7 +39,7 @@ sub insertar {
     my ($self, $clave, $valor) = @_;
     my $raiz = $self->{raiz};
 
-    if ($raiz->num_claves == ArbolB::ORDEN - 1) {
+    if ($raiz->num_claves == $ORDEN - 1) {
         my $nueva_raiz = nodoB->new();
         $nueva_raiz->{es_hoja} = 0;
         push @{ $nueva_raiz->{hijos} }, $raiz;
@@ -54,7 +54,7 @@ sub insertar {
 #============================================================================
 sub _split_hijo {
     my ($self, $padre, $i) = @_;
-    my $t    = int(ArbolB::ORDEN / 2);
+    my $t    = int($ORDEN / 2);
     my $hijo = $padre->{hijos}[$i];
     my $nuevo = nodoB->new();
     $nuevo->{es_hoja} = $hijo->{es_hoja};
@@ -89,7 +89,7 @@ sub _insertar_no_lleno {
         $i-- while $i >= 0 && $clave lt $nodo->{claves}[$i]{clave};
         $i++;
 
-        if ($nodo->{hijos}[$i]->num_claves == ArbolB::ORDEN - 1) {
+        if ($nodo->{hijos}[$i]->num_claves == $ORDEN - 1) {
             $self->_split_hijo($nodo, $i);
             $i++ if $clave gt $nodo->{claves}[$i]{clave};
         }

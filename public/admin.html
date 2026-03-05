@@ -246,6 +246,44 @@
   .badge-ok  { background:rgba(0,255,231,0.1); color:var(--cyan); border:1px solid rgba(0,255,231,0.2); }
   .badge-low { background:rgba(255,45,120,0.1); color:var(--pink); border:1px solid rgba(255,45,120,0.2); }
 
+    /* Campos */
+
+  /* Asegura que number y date tengan el mismo estilo */
+.campo input[type="number"],
+.campo input[type="text"],
+.campo input[type="date"] {
+    width: 100%;
+    padding: 11px 14px;
+    background: rgba(0,255,231,0.03);
+    border: 1px solid rgba(0,255,231,0.18);
+    border-radius: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--cyan);
+    outline: none;
+    transition: all 0.2s;
+}
+
+.campo input[type="number"]:focus,
+.campo input[type="date"]:focus {
+    border-color: var(--cyan);
+    background: rgba(0,255,231,0.06);
+    box-shadow: 0 0 18px rgba(0,255,231,0.1);
+}
+
+/* Quita el fondo blanco del calendario nativo */
+.campo input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) sepia(1) saturate(5) hue-rotate(130deg);
+    cursor: pointer;
+}
+
+/* Quita las flechitas del number en Chrome */
+.campo input[type="number"]::-webkit-outer-spin-button,
+.campo input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
   /* ── BOTONES ── */
   .btn {
     padding:11px 24px; border-radius:2px; border:1px solid;
@@ -514,9 +552,99 @@
       <div class="sec-title">EQUIPOS MÉDICOS // BST</div>
       <div class="sec-line"></div>
     </div>
-    <div class="card">
-      <div class="coming-soon">> ÁRBOL BST — FASE 2 //<br><span>PRÓXIMAMENTE: GESTIÓN DE EQUIPOS MÉDICOS</span></div>
+    <!-- REGISTRAR -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // REGISTRAR EQUIPO INDIVIDUAL
     </div>
+    <div class="grid2">
+      <div class="campo"><label>// CÓDIGO *</label>
+        <input type="text" id="eq-codigo" placeholder="EQU001 ó 001" spellcheck="false">
+      </div>
+      <div class="campo"><label>// NOMBRE *</label>
+        <input type="text" id="eq-nombre" placeholder="Tensiómetro Digital">
+      </div>
+      <div class="campo"><label>// FABRICANTE</label>
+        <input type="text" id="eq-fab" placeholder="MediSupplyGT">
+      </div>
+      <div class="campo"><label>// PRECIO UNITARIO</label>
+        <input type="number" id="eq-precio" placeholder="350.00" min="0" step="0.01">
+      </div>
+      <div class="campo"><label>// CANTIDAD</label>
+        <input type="number" id="eq-cantidad" placeholder="25" min="1">
+      </div>
+      <div class="campo"><label>// NIVEL MÍNIMO</label>
+        <input type="number" id="eq-minimo" placeholder="5" min="0">
+      </div>
+    </div>
+    <div class="campo"><label>// FECHA DE INGRESO</label>
+      <input type="date" id="eq-fecha">
+    </div>
+    <div class="msg" id="eq-reg-msg"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-cyan" onclick="registrarEquipo()">REGISTRAR EQUIPO</button>
+    </div>
+  </div>
+  <!-- BUSCAR / ELIMINAR -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // BUSCAR / ELIMINAR EQUIPO
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="campo" style="flex:1;margin:0;">
+        <label>// CÓDIGO DEL EQUIPO</label>
+        <input type="text" id="eq-buscar-cod" placeholder="EQU001" spellcheck="false"
+               onkeydown="if(event.key==='Enter') buscarEquipo()">
+      </div>
+      <button class="btn btn-cyan" style="margin:0;" onclick="buscarEquipo()">BUSCAR</button>
+      <button class="btn btn-pink" style="margin:0;" onclick="eliminarEquipo()">ELIMINAR</button>
+    </div>
+    <div class="msg" id="eq-buscar-msg"></div>
+
+    <!-- Resultado de búsqueda -->
+    <div id="eq-resultado" style="display:none;margin-top:16px;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>CÓDIGO</th><th>NOMBRE</th><th>FABRICANTE</th>
+            <th>PRECIO</th><th>CANTIDAD</th><th>FECHA ING.</th><th>NIV.MÍN</th><th>ESTADO</th>
+          </tr></thead>
+          <tbody id="eq-resultado-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- INVENTARIO CON RECORRIDOS -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;">
+        // INVENTARIO COMPLETO
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+                onclick="cargarEquipos('inorden')">IN-ORDEN</button>
+        <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+                onclick="cargarEquipos('preorden')">PRE-ORDEN</button>
+        <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+                onclick="cargarEquipos('postorden')">POST-ORDEN</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>CÓDIGO</th><th>NOMBRE</th><th>FABRICANTE</th>
+          <th>PRECIO</th><th>CANTIDAD</th><th>FECHA ING.</th><th>NIV.MÍN</th><th>ESTADO</th>
+        </tr></thead>
+        <tbody id="tabla-equipos">
+          <tr><td colspan="8" style="text-align:center;color:var(--dim);padding:20px;">
+            > SELECCIONA UN RECORRIDO PARA VISUALIZAR
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);
+                margin-top:10px;letter-spacing:1px;" id="eq-recorrido-label"></div>
+  </div>
   </div>
 
   <!-- ═══════════════════════════════════════ -->
@@ -528,9 +656,94 @@
       <div class="sec-title">SUMINISTROS // ÁRBOL B ORD.4</div>
       <div class="sec-line"></div>
     </div>
-    <div class="card">
-      <div class="coming-soon">> ÁRBOL B ORDEN 4 — FASE 2 //<br><span>PRÓXIMAMENTE: GESTIÓN DE SUMINISTROS</span></div>
+    <!-- REGISTRAR -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // REGISTRAR SUMINISTRO INDIVIDUAL
     </div>
+    <div class="grid2">
+      <div class="campo"><label>// CÓDIGO *</label>
+        <input type="text" id="sum-codigo" placeholder="SUM001 ó 001" spellcheck="false">
+      </div>
+      <div class="campo"><label>// NOMBRE *</label>
+        <input type="text" id="sum-nombre" placeholder="Guantes de Nitrilo Talla M">
+      </div>
+      <div class="campo"><label>// FABRICANTE</label>
+        <input type="text" id="sum-fab" placeholder="MediSupplyGT">
+      </div>
+      <div class="campo"><label>// PRECIO UNITARIO</label>
+        <input type="number" id="sum-precio" placeholder="0.15" min="0" step="0.01">
+      </div>
+      <div class="campo"><label>// CANTIDAD</label>
+        <input type="number" id="sum-cantidad" placeholder="50000" min="1">
+      </div>
+      <div class="campo"><label>// NIVEL MÍNIMO</label>
+        <input type="number" id="sum-minimo" placeholder="5000" min="0">
+      </div>
+    </div>
+    <div class="campo"><label>// FECHA DE VENCIMIENTO (opcional)</label>
+      <input type="date" id="sum-vence">
+    </div>
+    <div class="msg" id="sum-reg-msg"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-cyan" onclick="registrarSuministro()">REGISTRAR SUMINISTRO</button>
+    </div>
+  </div>
+
+  <!-- BUSCAR / ELIMINAR -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // BUSCAR / ELIMINAR SUMINISTRO
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="campo" style="flex:1;margin:0;">
+        <label>// CÓDIGO DEL SUMINISTRO</label>
+        <input type="text" id="sum-buscar-cod" placeholder="SUM001" spellcheck="false"
+               onkeydown="if(event.key==='Enter') buscarSuministro()">
+      </div>
+      <button class="btn btn-cyan" style="margin:0;" onclick="buscarSuministro()">BUSCAR</button>
+      <button class="btn btn-pink" style="margin:0;" onclick="eliminarSuministro()">ELIMINAR</button>
+    </div>
+    <div class="msg" id="sum-buscar-msg"></div>
+
+    <div id="sum-resultado" style="display:none;margin-top:16px;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>CÓDIGO</th><th>NOMBRE</th><th>FABRICANTE</th>
+            <th>PRECIO</th><th>CANTIDAD</th><th>VENCIMIENTO</th><th>NIV.MÍN</th><th>ESTADO</th>
+          </tr></thead>
+          <tbody id="sum-resultado-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTARIO IN-ORDEN -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;">
+        // INVENTARIO COMPLETO
+      </div>
+      <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+              onclick="cargarSuministros()">IN-ORDEN</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>CÓDIGO</th><th>NOMBRE</th><th>FABRICANTE</th>
+          <th>PRECIO</th><th>CANTIDAD</th><th>VENCIMIENTO</th><th>NIV.MÍN</th><th>ESTADO</th>
+        </tr></thead>
+        <tbody id="tabla-suministros">
+          <tr><td colspan="8" style="text-align:center;color:var(--dim);padding:20px;">
+            > PRESIONA IN-ORDEN PARA VISUALIZAR
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);
+                margin-top:10px;letter-spacing:1px;" id="sum-inorden-label"></div>
+  </div>
   </div>
 
 </div><!-- /main -->
@@ -681,7 +894,7 @@ async function cargarCSV() {
     mostrarMsg('carga-msg', 'error', '> ERROR :: FALLO AL CONECTAR CON EL SERVIDOR');
   }
 
-  btn.innerHTML = 'PROCESAR CSV';
+  btn.innerHTML = 'PROCESAR json';
   btn.disabled = false;
 }
 
@@ -749,6 +962,267 @@ function ocultarMsg(id) {
   const el = document.getElementById(id);
   el.className = 'msg';
   el.style.display = 'none';
+}
+
+// ======================================== EQUIPOS BST ========================================
+//========================================================================================================================
+
+async function registrarEquipo() {
+    const codigo   = document.getElementById('eq-codigo').value.trim();
+    const nombre   = document.getElementById('eq-nombre').value.trim();
+    const fab      = document.getElementById('eq-fab').value.trim();
+    const precio   = parseFloat(document.getElementById('eq-precio').value) || 0;
+    const cantidad = parseInt(document.getElementById('eq-cantidad').value)  || 0;
+    const minimo   = parseInt(document.getElementById('eq-minimo').value)    || 0;
+    const fecha    = document.getElementById('eq-fecha').value;
+    const msg      = document.getElementById('eq-reg-msg');
+
+    if (!codigo || !nombre) {
+        mostrarMsg('eq-reg-msg', 'error', '> ERROR :: CÓDIGO Y NOMBRE SON OBLIGATORIOS');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/equipos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, nombre, fabricante:fab, precio, cantidad, fecha, minimo })
+        });
+        const data = await res.json();
+        mostrarMsg('eq-reg-msg', data.ok ? 'ok' : 'error',
+            '> ' + (data.ok ? data.mensaje : data.mensaje).toUpperCase()
+        );
+        if (data.ok) {
+          //limpiar campos
+            ['eq-codigo','eq-nombre','eq-fab','eq-precio','eq-cantidad','eq-minimo','eq-fecha']
+                .forEach(id => document.getElementById(id).value = '');
+                //después de ingresar un nuevo equipo,  se refresca la tabla 
+            cargarEquipos('inorden');
+            cargarStats();
+        }
+    } catch(e) {
+        mostrarMsg('eq-reg-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function buscarEquipo() {
+    const codigo = document.getElementById('eq-buscar-cod').value.trim().toUpperCase();
+    if (!codigo) return;
+
+    try {
+      //mandar por url el código
+        const res  = await fetch('/equipos/' + codigo);
+        const data = await res.json();
+
+        if (data.ok) {
+            const bajo = data.cantidad < data.minimo;
+            document.getElementById('eq-resultado-body').innerHTML = `
+                <tr>
+                  <td>${data.codigo}</td>
+                  <td>${data.nombre}</td>
+                  <td>${data.fabricante}</td>
+                  <td>Q${data.precio}</td>
+                  <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${data.cantidad}</span></td>
+                  <td>${data.fecha}</td>
+                  <td>${data.minimo}</td>
+                  <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span></td>
+                </tr>`;
+            document.getElementById('eq-resultado').style.display = 'block';
+            ocultarMsg('eq-buscar-msg');
+        } else {
+            document.getElementById('eq-resultado').style.display = 'none';
+            mostrarMsg('eq-buscar-msg', 'error', '> ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('eq-buscar-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function eliminarEquipo() {
+    const codigo = document.getElementById('eq-buscar-cod').value.trim().toUpperCase();
+    if (!codigo) {
+        mostrarMsg('eq-buscar-msg', 'error', '> ERROR :: INGRESA UN CÓDIGO PARA ELIMINAR');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/equipos/' + codigo, { method: 'DELETE' });
+        const data = await res.json();
+        mostrarMsg('eq-buscar-msg', data.ok ? 'ok' : 'error',
+            '> ' + data.mensaje.toUpperCase()
+        );
+        if (data.ok) {
+            document.getElementById('eq-resultado').style.display = 'none';
+            document.getElementById('eq-buscar-cod').value = '';
+            cargarEquipos('inorden');
+            cargarStats();
+        }
+    } catch(e) {
+        mostrarMsg('eq-buscar-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function cargarEquipos(recorrido = 'inorden') {
+    try {
+        const res   = await fetch('/equipos?recorrido=' + recorrido);
+        const data  = await res.json();
+        const tbody = document.getElementById('tabla-equipos');
+        const label = document.getElementById('eq-recorrido-label');
+
+        label.textContent = '> RECORRIDO: ' + recorrido.toUpperCase() +
+                            ' — ' + (data.equipos?.length || 0) + ' EQUIPOS';
+
+        if (!data.equipos || data.equipos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:20px;">> SIN REGISTROS</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.equipos.map(eq => {
+            const bajo = eq.cantidad < eq.minimo;
+            return `<tr>
+                <td>${eq.codigo}</td>
+                <td>${eq.nombre}</td>
+                <td>${eq.fabricante}</td>
+                <td>Q${eq.precio}</td>
+                <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${eq.cantidad}</span></td>
+                <td>${eq.fecha}</td>
+                <td>${eq.minimo}</td>
+                <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+// ================================= SUMINISTROS ÁRBOL B =================================
+//===================================================================================================
+
+//Es bastante parecido al código que usamos arriba para la parte de suministros
+
+async function registrarSuministro() {
+    const codigo   = document.getElementById('sum-codigo').value.trim();
+    const nombre   = document.getElementById('sum-nombre').value.trim();
+    const fab      = document.getElementById('sum-fab').value.trim();
+    const precio   = parseFloat(document.getElementById('sum-precio').value)   || 0;
+    const cantidad = parseInt(document.getElementById('sum-cantidad').value)    || 0;
+    const minimo   = parseInt(document.getElementById('sum-minimo').value)      || 0;
+    const vence    = document.getElementById('sum-vence').value;
+
+    if (!codigo || !nombre) {
+        mostrarMsg('sum-reg-msg', 'error', '> ERROR :: CÓDIGO Y NOMBRE SON OBLIGATORIOS');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/suministros', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, nombre, fabricante:fab, precio, cantidad, vence, minimo })
+        });
+        const data = await res.json();
+        mostrarMsg('sum-reg-msg', data.ok ? 'ok' : 'error',
+            '> ' + data.mensaje.toUpperCase()
+        );
+        if (data.ok) {
+          //limpiar los campos
+            ['sum-codigo','sum-nombre','sum-fab','sum-precio','sum-cantidad','sum-minimo','sum-vence']
+                .forEach(id => document.getElementById(id).value = '');
+            cargarSuministros();
+            cargarStats();
+        }
+    } catch(e) {
+        mostrarMsg('sum-reg-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function buscarSuministro() {
+    const codigo = document.getElementById('sum-buscar-cod').value.trim().toUpperCase();
+    if (!codigo) return;
+
+    try {
+        const res  = await fetch('/suministros/' + codigo);
+        const data = await res.json();
+
+        if (data.ok) {
+            const bajo = data.cantidad < data.minimo;
+            document.getElementById('sum-resultado-body').innerHTML = `
+                <tr>
+                  <td>${data.codigo}</td>
+                  <td>${data.nombre}</td>
+                  <td>${data.fabricante}</td>
+                  <td>Q${data.precio}</td>
+                  <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${data.cantidad}</span></td>
+                  <td>${data.vence || '—'}</td>
+                  <td>${data.minimo}</td>
+                  <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span></td>
+                </tr>`;
+            document.getElementById('sum-resultado').style.display = 'block';
+            ocultarMsg('sum-buscar-msg');
+        } else {
+            document.getElementById('sum-resultado').style.display = 'none';
+            mostrarMsg('sum-buscar-msg', 'error', '> ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('sum-buscar-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function eliminarSuministro() {
+    const codigo = document.getElementById('sum-buscar-cod').value.trim().toUpperCase();
+    if (!codigo) {
+        mostrarMsg('sum-buscar-msg', 'error', '> ERROR :: INGRESA UN CÓDIGO PARA ELIMINAR');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/suministros/' + codigo, { method: 'DELETE' });
+        const data = await res.json();
+        mostrarMsg('sum-buscar-msg', data.ok ? 'ok' : 'error',
+            '> ' + data.mensaje.toUpperCase()
+        );
+        if (data.ok) {
+            document.getElementById('sum-resultado').style.display = 'none';
+            document.getElementById('sum-buscar-cod').value = '';
+            cargarSuministros();
+            cargarStats();
+        }
+    } catch(e) {
+        mostrarMsg('sum-buscar-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function cargarSuministros() {
+    try {
+        const res   = await fetch('/suministros');
+        const data  = await res.json();
+        const tbody = document.getElementById('tabla-suministros');
+        const label = document.getElementById('sum-inorden-label');
+
+        label.textContent = '> RECORRIDO: IN-ORDEN — ' +
+                            (data.suministros?.length || 0) + ' SUMINISTROS';
+
+        if (!data.suministros || data.suministros.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:20px;">> SIN REGISTROS</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.suministros.map(sum => {
+            const bajo = sum.cantidad < sum.minimo;
+            return `<tr>
+                <td>${sum.codigo}</td>
+                <td>${sum.nombre}</td>
+                <td>${sum.fabricante}</td>
+                <td>Q${sum.precio}</td>
+                <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${sum.cantidad}</span></td>
+                <td>${sum.vence || '—'}</td>
+                <td>${sum.minimo}</td>
+                <td><span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span></td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        console.error(e);
+    }
 }
 
 // Al cargar la página

@@ -1,4 +1,4 @@
-package NodoB;
+package nodoB;
 use strict;
 use warnings;
 
@@ -12,3 +12,5 @@ sub new {
 }
 
 sub num_claves { return scalar @{ $_[0]->{claves} }; }
+
+1;

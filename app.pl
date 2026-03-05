@@ -12,25 +12,24 @@ use listaDoblementeEnlazada;
 use listaCircular;
 use listaCircularDoble;
 use proveedor;
-use entregaProveedor;
 use solicitudReabastecimiento;
 use matrizDispersa;
 use equipo; 
 use suministro;
-use ArbolAVL;
-use ArbolBST;
-use ArbolB;
+use arbolAvl;
+use arbolBST;
+use arbolB;
 use entregaProveedorAct;
 
 my $listaMedicamentos = listaDoblementeEnlazada->new;
-my $listaProveedores  = listaCircular->new;
+my $listaProveedores  = listaCircularDoble->new;
 my $listaSolicitudes  = listaCircularDoble->new;
 my $matrizDispersaMed = matrizDispersa->new;
 
 #TOCA LLAMAR A LOS ÁRBOLES
-my $arbolAVL = ArbolAVL->new;
-my $arbolBST = ArbolBST->new;
-my $arbolB   = ArbolB->new;
+my $arbolAVL = arbolAvl->new;
+my $arbolBST = arbolBST->new;
+my $arbolB   = arbolB->new;
 
 $arbolAVL->insertar('COL-10245', { nombre=>'Ana Ramirez',     tipo=>'TIPO-01', depto=>'DEP-MED', espec=>'Medicina General',       pass=>'medgen2026'  });
 $arbolAVL->insertar('COL-10389', { nombre=>'Roberto Aguilar', tipo=>'TIPO-02', depto=>'DEP-CIR', espec=>'Cirugia Cardiovascular', pass=>'cirugia2026' });
@@ -184,7 +183,7 @@ post '/carga-masiva' => sub ($c) {
         # Antes de crear $prov, verificar si ya existe por NIT
         my $prov_existente = undef;
         #recorremos la lista en búsqueda del mismo proveedor
-        $listaProveedores->recorrer(sub {
+        $listaProveedores->recorrerAdelante(sub {
             my $nodo = shift;
             $prov_existente = $nodo->valor if $nodo->valor->nit eq $nit;
         });
@@ -201,12 +200,12 @@ post '/carga-masiva' => sub ($c) {
                 telefono      => $tel,
                 direccion     => $dir,
             );
-            $listaProveedores->pushBack($prov);
+            $listaProveedores->insertar($prov);
             $provs++;
         }
 
         #=========================CREAMOS LA NUEVA ENTREGA===============================0
-        my $entrega = entregaProveedor->new(
+        my $entrega = entregaProveedorAct->new(
             fechaEntrega  => $fent,
             numeroFactura => $fact,
         );
@@ -346,6 +345,180 @@ post '/medicamentos' => sub ($c) {
     $matrizDispersaMed->insertar($d->{lab}//'', $d->{nombre}//'', $med);
     $listaMedicamentos->pushBack($med);
     $c->render(json => { ok=>1, codigo=>$codigo });
+};
+
+# =========================================EQUIPOS (Árbol BST)  =========================================
+
+# Este endpoint es para recorrer el árbol de diferentes formas
+get '/equipos' => sub ($c) {
+    my $recorrido = $c->param('recorrido') // 'inorden';
+    my $lista;
+
+    if    ($recorrido eq 'preorden')  { $lista = $arbolBST->preorden;  }
+    elsif ($recorrido eq 'postorden') { $lista = $arbolBST->postorden; }
+    else                              { $lista = $arbolBST->inorden;   }
+
+    my @resultado = map {
+        my $eq = $_->{valor};
+        {
+            codigo    => $eq->codigoEquipo,
+            nombre    => $eq->nombreEquipo,
+            fabricante=> $eq->fabricanteEquipo,
+            precio    => $eq->precioEquipo,
+            cantidad  => $eq->cantidadEquipo,
+            fecha     => $eq->fechaIngresoEquipo,
+            minimo    => $eq->nivelMinimoReorden,
+        }
+    } @$lista;
+
+    $c->render(json => { ok=>1, equipos=>\@resultado, recorrido=>$recorrido });
+};
+
+# Este endpoint es para buscar los equipos uno a uno
+get '/equipos/:codigo' => sub ($c) {
+    my $codigo = uc(trim($c->param('codigo')));
+    my $eq     = $arbolBST->buscar($codigo);
+
+    unless (defined $eq) {
+        return $c->render(json => { ok=>0, mensaje=>"Equipo $codigo no encontrado" });
+    }
+
+    $c->render(json => {
+        ok        => 1,
+        codigo    => $eq->codigoEquipo,
+        nombre    => $eq->nombreEquipo,
+        fabricante=> $eq->fabricanteEquipo,
+        precio    => $eq->precioEquipo,
+        cantidad  => $eq->cantidadEquipo,
+        fecha     => $eq->fechaIngresoEquipo,
+        minimo    => $eq->nivelMinimoReorden,
+    });
+};
+
+# Este endpoint es para registrar un equipo de manera individual
+post '/equipos' => sub ($c) {
+    my $d      = decode_json($c->req->body);
+    my $codigo = uc(trim($d->{codigo} // ''));
+    my $nom    = trim($d->{nombre}    // '');
+
+    return $c->render(json => { ok=>0, mensaje=>'Código y nombre son obligatorios' })
+        unless $codigo && $nom;
+
+    #Obtener el código
+    my $cod_eq = $codigo =~ /^EQU/i ? uc($codigo) : "EQU$codigo";
+
+    return $c->render(json => { ok=>0, mensaje=>"$cod_eq ya existe en el inventario" })
+        if defined $arbolBST->buscar($cod_eq);
+
+    my $eq = equipo->new(
+        tipo               => 'EQUIPO',
+        codigoEquipo       => $cod_eq,
+        nombreEquipo       => $nom,
+        fabricanteEquipo   => trim($d->{fabricante}  // ''),
+        precioEquipo       => $d->{precio}            // 0,
+        cantidadEquipo     => $d->{cantidad}          // 0,
+        fechaIngresoEquipo => trim($d->{fecha}        // ''),
+        nivelMinimoReorden => $d->{minimo}            // 0,
+    );
+
+    $arbolBST->insertar($cod_eq, $eq);
+    $c->render(json => { ok=>1, mensaje=>"$cod_eq registrado exitosamente" });
+};
+
+# Esto es para poder eliminar un equipo
+del '/equipos/:codigo' => sub ($c) {
+    my $codigo = uc(trim($c->param('codigo')));
+
+    unless (defined $arbolBST->buscar($codigo)) {
+        return $c->render(json => { ok=>0, mensaje=>"Equipo $codigo no encontrado" });
+    }
+
+    $arbolBST->eliminar($codigo);
+    $c->render(json => { ok=>1, mensaje=>"$codigo eliminado exitosamente" });
+};
+
+## =========================================SUMINISTROS (Árbol B)  =========================================
+
+# para retornar el recorrido Inorder
+get '/suministros' => sub ($c) {
+    my $lista = $arbolB->inorden;
+
+    my @resultado = map {
+        my $sum = $_->{valor};
+        {
+            codigo     => $sum->codigoSuministro,
+            nombre     => $sum->nombreSuministro,
+            fabricante => $sum->fabricanteSuministro,
+            precio     => $sum->precioSuministro,
+            cantidad   => $sum->cantidadSuministro,
+            vence      => $sum->fechaVencimientoSuministro,
+            minimo     => $sum->nivelMinimoReorden,
+        }
+    } @$lista;
+
+    $c->render(json => { ok=>1, suministros=>\@resultado });
+};
+
+# para buscar un código en específico 
+get '/suministros/:codigo' => sub ($c) {
+    my $codigo = uc(trim($c->param('codigo')));
+    my $sum    = $arbolB->buscar($codigo);
+
+    unless (defined $sum) {
+        return $c->render(json => { ok=>0, mensaje=>"Suministro $codigo no encontrado" });
+    }
+
+    $c->render(json => {
+        ok         => 1,
+        codigo     => $sum->codigoSuministro,
+        nombre     => $sum->nombreSuministro,
+        fabricante => $sum->fabricanteSuministro,
+        precio     => $sum->precioSuministro,
+        cantidad   => $sum->cantidadSuministro,
+        vence      => $sum->fechaVencimientoSuministro,
+        minimo     => $sum->nivelMinimoReorden,
+    });
+};
+
+# Para el registro individual
+post '/suministros' => sub ($c) {
+    my $d      = decode_json($c->req->body);
+    my $codigo = uc(trim($d->{codigo} // ''));
+    my $nom    = trim($d->{nombre}    // '');
+
+    return $c->render(json => { ok=>0, mensaje=>'Código y nombre son obligatorios' })
+        unless $codigo && $nom;
+
+    my $cod_sum = $codigo =~ /^SUM/i ? uc($codigo) : "SUM$codigo";
+
+    return $c->render(json => { ok=>0, mensaje=>"$cod_sum ya existe en el inventario" })
+        if defined $arbolB->buscar($cod_sum);
+
+    my $sum = suministro->new(
+        tipo                       => 'SUMINISTRO',
+        codigoSuministro           => $cod_sum,
+        nombreSuministro           => $nom,
+        fabricanteSuministro       => trim($d->{fabricante} // ''),
+        precioSuministro           => $d->{precio}           // 0,
+        cantidadSuministro         => $d->{cantidad}         // 0,
+        fechaVencimientoSuministro => trim($d->{vence}       // ''),
+        nivelMinimoReorden         => $d->{minimo}           // 0,
+    );
+
+    $arbolB->insertar($cod_sum, $sum);
+    $c->render(json => { ok=>1, mensaje=>"$cod_sum registrado exitosamente" });
+};
+
+# Para eliminar un suministro del árbol
+del '/suministros/:codigo' => sub ($c) {
+    my $codigo = uc(trim($c->param('codigo')));
+
+    unless (defined $arbolB->buscar($codigo)) {
+        return $c->render(json => { ok=>0, mensaje=>"Suministro $codigo no encontrado" });
+    }
+
+    $arbolB->eliminar($codigo);
+    $c->render(json => { ok=>1, mensaje=>"$codigo eliminado exitosamente" });
 };
 
 app->start;

@@ -59,7 +59,7 @@ sub recorrerAtras{
     my $cur = $self->obtener_tail;
     for(1 .. $self->{size}){
         $codigoReferencia->($cur);
-        $cur = $cur->anteriorS;
+        $cur = $cur->anterior;
     }
 }
 
