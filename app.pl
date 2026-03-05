@@ -15,17 +15,27 @@ use proveedor;
 use entregaProveedor;
 use solicitudReabastecimiento;
 use matrizDispersa;
+use equipo; 
+use suministro;
+use ArbolAVL;
+use ArbolBST;
+use ArbolB;
+use entregaProveedorAct;
 
 my $listaMedicamentos = listaDoblementeEnlazada->new;
 my $listaProveedores  = listaCircular->new;
 my $listaSolicitudes  = listaCircularDoble->new;
 my $matrizDispersaMed = matrizDispersa->new;
 
-my %usuarios_avl = (
-    'COL-10245' => { nombre => 'Ana Ramírez',     tipo => 'TIPO-01', depto => 'DEP-MED', pass => 'medgen2026'  },
-    'COL-10389' => { nombre => 'Roberto Aguilar', tipo => 'TIPO-02', depto => 'DEP-CIR', pass => 'cirugia2026' },
-    'COL-20134' => { nombre => 'María Paz',        tipo => 'TIPO-03', depto => 'DEP-FAR', pass => 'enf2026far'  },
-);
+#TOCA LLAMAR A LOS ÁRBOLES
+my $arbolAVL = ArbolAVL->new;
+my $arbolBST = ArbolBST->new;
+my $arbolB   = ArbolB->new;
+
+$arbolAVL->insertar('COL-10245', { nombre=>'Ana Ramirez',     tipo=>'TIPO-01', depto=>'DEP-MED', espec=>'Medicina General',       pass=>'medgen2026'  });
+$arbolAVL->insertar('COL-10389', { nombre=>'Roberto Aguilar', tipo=>'TIPO-02', depto=>'DEP-CIR', espec=>'Cirugia Cardiovascular', pass=>'cirugia2026' });
+$arbolAVL->insertar('COL-20134', { nombre=>'Maria Paz',        tipo=>'TIPO-03', depto=>'DEP-FAR', espec=>'',                       pass=>'enf2026far'  });
+
 
 sub generar_codigo_med {
     my $num = $listaMedicamentos->size + 1;
@@ -43,8 +53,10 @@ post '/login' => sub ($c) {
         return $c->render(json => { ok=>1, rol=>'admin', nombre=>'Administrador', tipo=>'TIPO-05' });
     }
 
-    if (exists $usuarios_avl{$user} && $usuarios_avl{$user}{pass} eq $pass) {
-        my $u = $usuarios_avl{$user};
+
+#Ahora ya buscamos dentro de un árbol AVL
+     my $u = $arbolAVL->buscar($user);
+    if (defined $u && $u->{pass} eq $pass) {
         return $c->render(json => { ok=>1, rol=>'medico', nombre=>$u->{nombre}, tipo=>$u->{tipo}, depto=>$u->{depto} });
     }
 
@@ -63,22 +75,65 @@ post '/registro' => sub ($c) {
     return $c->render(json => { ok=>0, mensaje=>'Complete todos los campos' })
         unless $colegio && $nombre && $tipo && $depto && $pass;
 
-    return $c->render(json => { ok=>0, mensaje=>'N de colegio ya registrado' })
-        if exists $usuarios_avl{$colegio};
+    return $c->render(json => { ok=>0, mensaje=>"$colegio ya esta registrado" })
+        if defined $arbolAVL->buscar($colegio);
 
-    $usuarios_avl{$colegio} = { nombre=>$nombre, tipo=>$tipo, depto=>$depto, especialidad=>$espec, pass=>$pass };
+     $arbolAVL->insertar($colegio, { nombre=>$nombre, tipo=>$tipo, depto=>$depto, espec=>$espec, pass=>$pass });
     return $c->render(json => { ok=>1, mensaje=>'Usuario registrado exitosamente' });
 };
 
+
+#=============================================CONUSLTAR USUARIOS=======================================0
 get '/usuarios' => sub ($c) {
     my @lista;
-    for my $col (sort keys %usuarios_avl) {
-        my $u = $usuarios_avl{$col};
-        push @lista, { numero_colegio=>$col, nombre=>$u->{nombre}, tipo=>$u->{tipo}, departamento=>$u->{depto}, especialidad=>$u->{especialidad}//'' };
+    for my $entry (@{ $arbolAVL->inorden() }) {
+        my $u = $entry->{valor};
+        push @lista, {
+            numero_colegio => $entry->{clave},
+            nombre         => $u->{nombre},
+            tipo           => $u->{tipo},
+            departamento   => $u->{depto},
+            especialidad   => $u->{espec} // '',
+        };
     }
     $c->render(json => { ok=>1, usuarios=>\@lista });
 };
+#=============================================CONUSLTAR EQUIPOS=======================================0
+get '/equipos' => sub ($c) {
+    my @lista;
+    for my $entry (@{ $arbolBST->inorden() }) {
+        my $eq = $entry->{valor};
+        push @lista, {
+            codigo    => $eq->codigoEquipo,
+            nombre    => $eq->nombreEquipo,
+            fabricante=> $eq->fabricanteEquipo,
+            precio    => $eq->precioEquipo,
+            cantidad  => $eq->cantidadEquipo,
+            fecha     => $eq->fechaIngresoEquipo,
+            minimo    => $eq->nivelMinimoReorden,
+        };
+    }
+    $c->render(json => { ok=>1, equipos=>\@lista });
+};
+#=============================================CONUSLTAR SUMINISTROS=======================================0
+get '/suministros' => sub ($c) {
+    my @lista;
+    for my $entry (@{ $arbolB->inorden() }) {
+        my $sum = $entry->{valor};
+        push @lista, {
+            codigo    => $sum->codigoSuministro,
+            nombre    => $sum->nombreSuministro,
+            fabricante=> $sum->fabricanteSuministro,
+            precio    => $sum->precioSuministro,
+            cantidad  => $sum->cantidadSuministro,
+            vence     => $sum->fechaVencimientoSuministro,
+            minimo    => $sum->nivelMinimoReorden,
+        };
+    }
+    $c->render(json => { ok=>1, suministros=>\@lista });
+};
 
+#======================CONSULTA DE MEDICAMENTOS===============================================
 get '/medicamentos' => sub ($c) {
     my @lista;
     $listaMedicamentos->iterar(sub {
@@ -125,8 +180,36 @@ post '/carga-masiva' => sub ($c) {
             next;
         }
 
-        # Fase 2: $listaProveedores->insertar({ nit=>$nit, nombre=>$pnombre, ... })
-        $provs++;
+        #====================CREAMOS AL PROVEEDOR==================
+        # Antes de crear $prov, verificar si ya existe por NIT
+        my $prov_existente = undef;
+        #recorremos la lista en búsqueda del mismo proveedor
+        $listaProveedores->recorrer(sub {
+            my $nodo = shift;
+            $prov_existente = $nodo->valor if $nodo->valor->nit eq $nit;
+        });
+        my $prov;
+        #verificar la existencia del proveedor
+        if (defined $prov_existente) {
+            # Ya existe, solo agregar la nueva entrega al mismo proveedor
+            $prov = $prov_existente;
+        } else {
+            # Es nuevo, crearlo e insertarlo al final
+            $prov = proveedor->new(
+                nit           => $nit,
+                nombreEmpresa => $pnombre,
+                telefono      => $tel,
+                direccion     => $dir,
+            );
+            $listaProveedores->pushBack($prov);
+            $provs++;
+        }
+
+        #=========================CREAMOS LA NUEVA ENTREGA===============================0
+        my $entrega = entregaProveedor->new(
+            fechaEntrega  => $fent,
+            numeroFactura => $fact,
+        );
 
         for my $item (@{ $prov_data->{entrega} // [] }) {
             my $tipo   = uc(trim($item->{tipo}    // ''));
@@ -175,6 +258,9 @@ post '/carga-masiva' => sub ($c) {
                     precio                => $precio,
                     nivelMinimoReorden    => $nivel,
                 );
+                #metemos el artículo en la entrega
+                $entrega->agregarItem($med);
+                #metemos los medicamentos en la lista de medicamentos y en la matriz
                 $matrizDispersaMed->insertar($pnombre, $fab, $med);
                 $listaMedicamentos->pushBack($med);
                 $meds++;
@@ -182,20 +268,58 @@ post '/carga-masiva' => sub ($c) {
             } elsif ($tipo eq 'EQUIPO') {
                 my $fing   = trim($item->{fecha_ingreso} // '');
                 my $cod_eq = "EQU$codigo";
-                # Fase 2: $arbolBST->insertar({ codigo=>$cod_eq, nombre=>$nom,
-                #   fabricante=>$fab, precio=>$precio, cantidad=>$cant,
-                #   fecha_ingreso=>$fing, nivel_minimo=>$nivel })
+
+                # Verificar que no haya duplicados dentro del árbol
+                if (defined $arbolBST->buscar($cod_eq)) {
+                    push @errores, "$cod_eq ya existe, omitido";
+                    next;
+                }
+
+                #construimos el equipo
+                my $eq = equipo->new(
+                    tipo               => 'EQUIPO',
+                    codigoEquipo       => $cod_eq,
+                    nombreEquipo       => $nom,
+                    fabricanteEquipo   => $fab,
+                    precioEquipo       => $precio,
+                    cantidadEquipo     => $cant,
+                    fechaIngresoEquipo => $fing,
+                    nivelMinimoReorden => $nivel,
+                );
+                #metemos el artículo en la entrega
+                $entrega->agregarItem($eq);
+                #insertamos los equipos y aumentamos el contador de equipo
+                $arbolBST->insertar($cod_eq, $eq);
                 $equipos++;
 
             } elsif ($tipo eq 'SUMINISTRO') {
                 my $vence   = trim($item->{fecha_vencimiento} // '');
                 my $cod_sum = "SUM$codigo";
-                # Fase 2: $arbolB->insertar({ codigo=>$cod_sum, nombre=>$nom,
-                #   fabricante=>$fab, precio=>$precio, cantidad=>$cant,
-                #   fecha_vencimiento=>$vence, nivel_minimo=>$nivel })
+                # Verificar que no hya duplicado en Árbol B
+                if (defined $arbolB->buscar($cod_sum)) {
+                    push @errores, "$cod_sum ya existe, omitido";
+                    next;
+                }
+                #creamos el suministro
+                my $sum = suministro->new(
+                    tipo                       => 'SUMINISTRO',
+                    codigoSuministro           => $cod_sum,
+                    nombreSuministro           => $nom,
+                    fabricanteSuministro       => $fab,
+                    precioSuministro           => $precio,
+                    cantidadSuministro         => $cant,
+                    fechaVencimientoSuministro => $vence,
+                    nivelMinimoReorden         => $nivel,
+                );
+                #metemos el artículo en la entrega
+                $entrega->agregarItem($sum);
+                #insertamos dentro del árbol y aumentamos el contador
+                $arbolB->insertar($cod_sum, $sum);
                 $suministros++;
             }
         }
+        #metemos la entrega en la lista del proveedor vigente
+         $prov->agregarEntrega($entrega);
     }
 
     return $c->render(json => {

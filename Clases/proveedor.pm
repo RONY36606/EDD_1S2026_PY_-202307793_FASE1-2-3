@@ -6,19 +6,18 @@ use warnings;
 use lib 'TDA';
 use listaSimple;
 use lib 'Clases';
-use entregaProveedor;
+use entregaProveedorAct;
 
-sub new{
-    my($class, %args) = @_;
+sub new {
+    my ($class, %args) = @_;
     my $self = {
-        nit => $args{nit} || '',
-        nombreEmpresa => $args{nombreEmpresa} || '',
+        nit               => $args{nit}               || '',
+        nombreEmpresa     => $args{nombreEmpresa}     || '',
         contactoPrincipal => $args{contactoPrincipal} || '',
-        telefono => $args{telefono} || '',
-        direccion => $args{direccion} || '',
-        entregas => listaSimple->new,
+        telefono          => $args{telefono}          || '',
+        direccion         => $args{direccion}         || '',
+        entregas          => listaSimple->new,
     };
-
     return bless $self, $class;
 }
 
@@ -38,22 +37,41 @@ sub set_telefono { $_[0]->{telefono} = $_[1] }
 sub direccion { $_[0]->{direccion} } 
 sub set_direccion { $_[0]->{direccion} = $_[1] } 
 
-#Método para insertar el la entrega realizada
-sub registroEntrega{
-    my($self, %args) = @_;
-    my $entrega = entregaProveedor->new(%args);
+#=========================NUEVA SECCIÓN DE MANEJO DE ENTREGAS===============================
+
+# Recibe un objeto entregaProveedorAct ya construido y lo agrega a la lista
+sub agregarEntrega {
+    my ($self, $entrega) = @_;
     $self->{entregas}->insertar_final($entrega);
 }
 
-#Método para listar todas las entregas realizadas
+# Devuelve cuántas entregas tiene este proveedor
+sub totalEntregas {
+    my ($self) = @_;
+    my $count = 0;
+    $self->{entregas}->recorrer(sub { $count++ });
+    return $count;
+}
 
-sub listarEntregas{
-    my($self) = @_;
+# Recorre todas las entregas y ejecuta un callback por cada una
+sub recorrerEntregas {
+    my ($self, $callback) = @_;
     $self->{entregas}->recorrer(sub {
         my $nodo = shift;
-        my $entrega = $nodo->valor;
-        print $entrega->nit, " - ", $entrega->codigoMedicamento, "\n";
+        $callback->($nodo->valor);
     });
+}
+
+# Buscar una entrega por número de factura
+sub buscarEntrega {
+    my ($self, $numeroFactura) = @_;
+    my $encontrada = undef;
+    $self->{entregas}->recorrer(sub {
+        my $nodo    = shift;
+        my $entrega = $nodo->valor;
+        $encontrada = $entrega if $entrega->numeroFactura eq $numeroFactura;
+    });
+    return $encontrada;
 }
 
 1;
