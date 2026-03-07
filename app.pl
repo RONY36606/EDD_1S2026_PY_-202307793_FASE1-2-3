@@ -53,8 +53,16 @@ post '/login' => sub ($c) {
 #Ahora ya buscamos dentro de un árbol AVL
      my $u = $arbolAVL->buscar($user);
     if (defined $u && $u->{pass} eq $pass) {
-        return $c->render(json => { ok=>1, rol=>'medico', nombre=>$u->{nombre}, tipo=>$u->{tipo}, depto=>$u->{depto} });
-    }
+    return $c->render(json => {
+        ok     => 1,
+        rol    => $user eq 'AdminHospital' ? 'admin' : 'medico',
+        colegio => $user,
+        nombre => $u->{nombre},
+        tipo   => $u->{tipo},
+        depto  => $u->{depto},
+        espec  => $u->{espec} // '',
+    });
+}
 
     return $c->render(json => { ok=>0, mensaje=>'Credenciales incorrectas' });
 };
@@ -305,6 +313,8 @@ post '/carga-masiva' => sub ($c) {
                 $entrega->agregarItem($eq);
                 #insertamos los equipos y aumentamos el contador de equipo
                 $arbolBST->insertar($cod_eq, $eq);
+                #metemos los equipos en la matriz
+                $matrizDispersaMed->insertar($pnombre, $fab, $eq);
                 $equipos++;
 
             } elsif ($tipo eq 'SUMINISTRO') {
@@ -330,6 +340,8 @@ post '/carga-masiva' => sub ($c) {
                 $entrega->agregarItem($sum);
                 #insertamos dentro del árbol y aumentamos el contador
                 $arbolB->insertar($cod_sum, $sum);
+                #metemos los suministros en la matriz
+                $matrizDispersaMed->insertar($pnombre, $fab, $sum);
                 $suministros++;
             }
         }
@@ -666,6 +678,38 @@ del '/usuarios/:colegio' => sub ($c) {
 
     $arbolAVL->eliminar($colegio);
     $c->render(json => { ok=>1, mensaje=>"$colegio eliminado exitosamente" });
+};
+
+#=========================================FUNCIÓN 7 PARA OBTENER LA MATRIZ DISPERZA=============================
+#===============================================================================================================
+get '/matriz' => sub ($c) {
+    my $data = $matrizDispersaMed->obtenerMatriz();
+    $c->render(json => { ok=>1, %$data });
+};
+
+
+
+#==========================================EDITAR EL PERFIL DEL USUARIO==================================
+#==================================================================================================================
+# PUT /perfil — editar nombre y contraseña
+put '/perfil' => sub ($c) {
+    my $d          = decode_json($c->req->body);
+    my $colegio    = trim($d->{colegio}      // '');
+    my $pass_actual = $d->{pass_actual}      // '';
+    my $nuevo_nom  = trim($d->{nuevo_nombre} // '');
+    my $nueva_pass = $d->{nueva_pass}        // '';
+
+    my $u = $arbolAVL->buscar($colegio);
+    return $c->render(json => { ok=>0, mensaje=>'Usuario no encontrado' })
+        unless defined $u;
+
+    return $c->render(json => { ok=>0, mensaje=>'Contraseña actual incorrecta' })
+        unless $u->{pass} eq $pass_actual;
+
+    $u->{nombre} = $nuevo_nom  if $nuevo_nom;
+    $u->{pass}   = $nueva_pass if $nueva_pass;
+
+    $c->render(json => { ok=>1, mensaje=>'Perfil actualizado exitosamente' });
 };
 
 app->start;

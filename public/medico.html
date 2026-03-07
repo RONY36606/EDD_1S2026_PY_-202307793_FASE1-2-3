@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDTRACK // PANEL MÉDICO</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cyan:   #00ffe7;
+  --pink:   #ff2d78;
+  --bg:     #040d14;
+  --card:   #071520;
+  --border: rgba(0,255,231,0.12);
+  --dim:    rgba(0,255,231,0.35);
+  --green:  #00ff88;
+  --yellow: #f5e642;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── GRID ANIMADO ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,231,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,231,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+  animation: gridMove 20s linear infinite;
+}
+@keyframes gridMove { from { background-position: 0 0; } to { background-position: 40px 40px; } }
+
+/* ── SCANLINES ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── HEADER ── */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(4,13,20,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px;
+}
+
+.header-logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 16px; font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--cyan);
+  text-shadow: 0 0 20px rgba(0,255,231,0.5);
+}
+
+.header-logo span { color: var(--pink); }
+
+.header-right {
+  display: flex; align-items: center; gap: 20px;
+}
+
+.user-badge {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px;
+  background: rgba(0,255,231,0.05);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 11px; letter-spacing: 1px;
+}
+
+.user-badge .user-dot {
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.btn-logout {
+  padding: 7px 16px;
+  background: rgba(255,45,120,0.08);
+  border: 1px solid rgba(255,45,120,0.3);
+  color: var(--pink);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 2px;
+  cursor: pointer; border-radius: 2px;
+  transition: all 0.2s;
+}
+.btn-logout:hover {
+  background: rgba(255,45,120,0.15);
+  box-shadow: 0 0 16px rgba(255,45,120,0.2);
+}
+
+/* ── NAV ── */
+.nav-bar {
+  position: sticky; top: 60px; z-index: 90;
+  background: rgba(4,13,20,0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; overflow-x: auto;
+  padding: 0 32px;
+}
+.nav-bar::-webkit-scrollbar { height: 2px; }
+.nav-bar::-webkit-scrollbar-thumb { background: var(--cyan); }
+
+.nav-item {
+  padding: 14px 20px;
+  background: none; border: none;
+  color: var(--dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 2px;
+  cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.nav-item:hover { color: var(--cyan); }
+.nav-item.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+  text-shadow: 0 0 12px rgba(0,255,231,0.5);
+}
+
+/* ── MAIN ── */
+.main { position: relative; z-index: 1; padding: 32px; max-width: 1100px; margin: 0 auto; }
+
+/* ── SECCIONES ── */
+.seccion { margin-bottom: 48px; }
+
+.sec-header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 24px;
+}
+.sec-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px; font-weight: 900;
+  color: rgba(0,255,231,0.12);
+  letter-spacing: 2px; line-height: 1;
+}
+.sec-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 4px; color: var(--cyan);
+}
+.sec-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,231,0.3), transparent);
+}
+
+/* ── CAMPO ── */
+.campo { margin-bottom: 14px; }
+.campo label {
+  display: block;
+  font-size: 10px; letter-spacing: 2px;
+  color: var(--dim); margin-bottom: 6px;
+}
+.campo input, .campo select {
+  width: 100%; padding: 11px 14px;
+  background: rgba(0,255,231,0.03);
+  border: 1px solid rgba(0,255,231,0.18);
+  border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px; color: var(--cyan);
+  outline: none; transition: all 0.2s;
+  -webkit-appearance: none; appearance: none;
+}
+.campo input:focus, .campo select:focus {
+  border-color: var(--cyan);
+  background: rgba(0,255,231,0.06);
+  box-shadow: 0 0 18px rgba(0,255,231,0.1);
+}
+.campo input[type="password"] { letter-spacing: 3px; }
+.campo select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300ffe7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+.campo select option { background: #040d14; color: var(--cyan); }
+.campo input[type="number"]::-webkit-outer-spin-button,
+.campo input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.campo input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(130deg); cursor: pointer;
+}
+.campo input:disabled {
+  color: var(--dim);
+  cursor: not-allowed;
+  background: rgba(0,255,231,0.01);
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:640px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* ── BOTONES ── */
+.btn {
+  padding: 11px 24px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 2px;
+  border-radius: 2px; cursor: pointer;
+  transition: all 0.2s; border: 1px solid;
+}
+.btn-cyan {
+  background: rgba(0,255,231,0.08);
+  border-color: rgba(0,255,231,0.4);
+  color: var(--cyan);
+}
+.btn-cyan:hover {
+  background: rgba(0,255,231,0.15);
+  box-shadow: 0 0 24px rgba(0,255,231,0.15);
+}
+.btn-pink {
+  background: rgba(255,45,120,0.08);
+  border-color: rgba(255,45,120,0.4);
+  color: var(--pink);
+}
+.btn-pink:hover {
+  background: rgba(255,45,120,0.15);
+  box-shadow: 0 0 24px rgba(255,45,120,0.15);
+}
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── MSG ── */
+.msg {
+  font-size: 11px; letter-spacing: 1px;
+  min-height: 20px; margin-top: 10px;
+  transition: all 0.2s;
+}
+.msg.ok    { color: var(--green); }
+.msg.error { color: var(--pink);  }
+
+/* ── TABLA ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead tr { border-bottom: 1px solid rgba(0,255,231,0.15); }
+th {
+  padding: 10px 14px; text-align: left;
+  font-family: 'Orbitron', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--dim); font-weight: 400;
+}
+td { padding: 10px 14px; border-bottom: 1px solid rgba(0,255,231,0.05); }
+tr:hover td { background: rgba(0,255,231,0.02); }
+
+/* ── BADGES ── */
+.badge-stock {
+  padding: 3px 10px; border-radius: 2px;
+  font-size: 11px; letter-spacing: 1px;
+}
+.badge-ok  { background: rgba(0,255,136,0.1);  color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+.badge-low { background: rgba(255,45,120,0.1); color: var(--pink);  border: 1px solid rgba(255,45,120,0.2); }
+
+/* ── PERFIL ── */
+.perfil-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 24px;
+  align-items: center;
+  font-size: 12px;
+}
+.perfil-key {
+  font-size: 10px; letter-spacing: 2px;
+  color: var(--dim);
+}
+.perfil-val {
+  color: var(--cyan);
+  font-size: 13px;
+}
+
+/* ── ALERTA STOCK ── */
+.alerta-stock {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: rgba(255,45,120,0.06);
+  border: 1px solid rgba(255,45,120,0.2);
+  border-radius: 2px;
+  margin-top: 12px;
+  font-size: 11px; letter-spacing: 1px;
+  color: var(--pink);
+}
+.alerta-stock::before { content: '⚠'; font-size: 14px; }
+
+/* ── RESULTADO CARD ── */
+.resultado-card {
+  background: rgba(0,255,231,0.03);
+  border: 1px solid rgba(0,255,231,0.12);
+  border-radius: 2px;
+  padding: 20px;
+  margin-top: 16px;
+}
+.resultado-card .r-titulo {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px; letter-spacing: 3px;
+  color: var(--cyan); margin-bottom: 16px;
+}
+.resultado-card .r-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.resultado-card .r-label {
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--dim); margin-bottom: 4px;
+}
+.resultado-card .r-valor {
+  font-size: 13px; color: var(--cyan);
+}
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 28px; right: 28px;
+  padding: 12px 20px;
+  background: #040d14;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; letter-spacing: 1px;
+  border-radius: 2px; z-index: 9999;
+  opacity: 0; transition: opacity 0.3s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">MED<span>TRACK</span> // PANEL MÉDICO</div>
+  <div class="header-right">
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="hdr-nombre">—</span>
+      <span style="color:var(--dim)">|</span>
+      <span id="hdr-depto" style="color:var(--dim);font-size:10px;">—</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">CERRAR SESIÓN</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-bar">
+  <button class="nav-item active" onclick="irA('sec-medicamentos', this)">02 // MEDICAMENTOS</button>
+  <button class="nav-item" onclick="irA('sec-equipos', this)">03 // EQUIPOS</button>
+  <button class="nav-item" onclick="irA('sec-suministros', this)">04 // SUMINISTROS</button>
+  <button class="nav-item" onclick="irA('sec-perfil', this)">05 // MI PERFIL</button>
+</div>
+
+<div class="main">
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 02 — MEDICAMENTOS                 -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-medicamentos">
+    <div class="sec-header">
+      <div class="sec-num">02</div>
+      <div class="sec-title">MEDICAMENTOS // LISTA DOBLE</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                  letter-spacing:2px;margin-bottom:16px;">
+        // CONSULTAR DISPONIBILIDAD
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div class="campo" style="flex:1;margin:0;">
+          <label>// CÓDIGO DEL MEDICAMENTO</label>
+          <input type="text" id="med-cod" placeholder="MED001 ó 001" spellcheck="false"
+                 onkeydown="if(event.key==='Enter') buscarMedicamento()">
+        </div>
+        <button class="btn btn-cyan" style="margin:0;" onclick="buscarMedicamento()">BUSCAR</button>
+      </div>
+      <div class="msg" id="med-msg"></div>
+
+      <!-- Resultado -->
+      <div id="med-resultado" style="display:none;">
+        <div class="resultado-card">
+          <div class="r-titulo">// INFORMACIÓN DEL MEDICAMENTO</div>
+          <div class="r-grid">
+            <div class="r-campo">
+              <div class="r-label">// CÓDIGO</div>
+              <div class="r-valor" id="med-r-codigo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// NOMBRE COMERCIAL</div>
+              <div class="r-valor" id="med-r-nombre">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// PRINCIPIO ACTIVO</div>
+              <div class="r-valor" id="med-r-activo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// FABRICANTE</div>
+              <div class="r-valor" id="med-r-fab">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// CANTIDAD DISPONIBLE</div>
+              <div class="r-valor" id="med-r-cantidad">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// NIVEL MÍNIMO</div>
+              <div class="r-valor" id="med-r-minimo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// FECHA VENCIMIENTO</div>
+              <div class="r-valor" id="med-r-vence">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// PRECIO UNITARIO</div>
+              <div class="r-valor" id="med-r-precio">—</div>
+            </div>
+          </div>
+          <div id="med-alerta" style="display:none;" class="alerta-stock">
+            STOCK BAJO — CANTIDAD POR DEBAJO DEL NIVEL MÍNIMO DE REORDEN
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 03 — EQUIPOS BST                  -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-equipos">
+    <div class="sec-header">
+      <div class="sec-num">03</div>
+      <div class="sec-title">EQUIPOS MÉDICOS // BST</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                  letter-spacing:2px;margin-bottom:16px;">
+        // CONSULTAR DISPONIBILIDAD
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div class="campo" style="flex:1;margin:0;">
+          <label>// CÓDIGO DEL EQUIPO</label>
+          <input type="text" id="eq-cod" placeholder="EQU001 ó 001" spellcheck="false"
+                 onkeydown="if(event.key==='Enter') buscarEquipo()">
+        </div>
+        <button class="btn btn-cyan" style="margin:0;" onclick="buscarEquipo()">BUSCAR</button>
+      </div>
+      <div class="msg" id="eq-msg"></div>
+
+      <div id="eq-resultado" style="display:none;">
+        <div class="resultado-card">
+          <div class="r-titulo">// INFORMACIÓN DEL EQUIPO</div>
+          <div class="r-grid">
+            <div class="r-campo">
+              <div class="r-label">// CÓDIGO</div>
+              <div class="r-valor" id="eq-r-codigo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// NOMBRE</div>
+              <div class="r-valor" id="eq-r-nombre">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// FABRICANTE</div>
+              <div class="r-valor" id="eq-r-fab">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// PRECIO UNITARIO</div>
+              <div class="r-valor" id="eq-r-precio">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// CANTIDAD DISPONIBLE</div>
+              <div class="r-valor" id="eq-r-cantidad">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// NIVEL MÍNIMO</div>
+              <div class="r-valor" id="eq-r-minimo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// FECHA DE INGRESO</div>
+              <div class="r-valor" id="eq-r-fecha">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// ESTADO</div>
+              <div class="r-valor" id="eq-r-estado">—</div>
+            </div>
+          </div>
+          <div id="eq-alerta" style="display:none;" class="alerta-stock">
+            STOCK BAJO — CANTIDAD POR DEBAJO DEL NIVEL MÍNIMO DE REORDEN
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 04 — SUMINISTROS ÁRBOL B          -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-suministros">
+    <div class="sec-header">
+      <div class="sec-num">04</div>
+      <div class="sec-title">SUMINISTROS // ÁRBOL B</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                  letter-spacing:2px;margin-bottom:16px;">
+        // CONSULTAR DISPONIBILIDAD
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div class="campo" style="flex:1;margin:0;">
+          <label>// CÓDIGO DEL SUMINISTRO</label>
+          <input type="text" id="sum-cod" placeholder="SUM001 ó 001" spellcheck="false"
+                 onkeydown="if(event.key==='Enter') buscarSuministro()">
+        </div>
+        <button class="btn btn-cyan" style="margin:0;" onclick="buscarSuministro()">BUSCAR</button>
+      </div>
+      <div class="msg" id="sum-msg"></div>
+
+      <div id="sum-resultado" style="display:none;">
+        <div class="resultado-card">
+          <div class="r-titulo">// INFORMACIÓN DEL SUMINISTRO</div>
+          <div class="r-grid">
+            <div class="r-campo">
+              <div class="r-label">// CÓDIGO</div>
+              <div class="r-valor" id="sum-r-codigo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// NOMBRE</div>
+              <div class="r-valor" id="sum-r-nombre">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// FABRICANTE</div>
+              <div class="r-valor" id="sum-r-fab">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// PRECIO UNITARIO</div>
+              <div class="r-valor" id="sum-r-precio">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// CANTIDAD DISPONIBLE</div>
+              <div class="r-valor" id="sum-r-cantidad">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// NIVEL MÍNIMO</div>
+              <div class="r-valor" id="sum-r-minimo">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// FECHA VENCIMIENTO</div>
+              <div class="r-valor" id="sum-r-vence">—</div>
+            </div>
+            <div class="r-campo">
+              <div class="r-label">// ESTADO</div>
+              <div class="r-valor" id="sum-r-estado">—</div>
+            </div>
+          </div>
+          <div id="sum-alerta" style="display:none;" class="alerta-stock">
+            STOCK BAJO — CANTIDAD POR DEBAJO DEL NIVEL MÍNIMO DE REORDEN
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 05 — MI PERFIL                    -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-perfil">
+    <div class="sec-header">
+      <div class="sec-num">05</div>
+      <div class="sec-title">MI PERFIL // AVL</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <!-- Info del perfil -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                  letter-spacing:2px;margin-bottom:20px;">
+        // DATOS REGISTRADOS EN EL SISTEMA
+      </div>
+      <div class="grid2">
+        <div class="campo">
+          <label>// N° COLEGIO PROFESIONAL</label>
+          <input type="text" id="prf-colegio" disabled>
+        </div>
+        <div class="campo">
+          <label>// NOMBRE COMPLETO</label>
+          <input type="text" id="prf-nombre" disabled>
+        </div>
+        <div class="campo">
+          <label>// TIPO DE USUARIO</label>
+          <input type="text" id="prf-tipo" disabled>
+        </div>
+        <div class="campo">
+          <label>// DEPARTAMENTO</label>
+          <input type="text" id="prf-depto" disabled>
+        </div>
+        <div class="campo">
+          <label>// ESPECIALIDAD</label>
+          <input type="text" id="prf-espec" disabled>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editar nombre y contraseña -->
+    <div class="card">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                  letter-spacing:2px;margin-bottom:16px;">
+        // EDITAR PERFIL
+      </div>
+      <div class="grid2">
+        <div class="campo">
+          <label>// NUEVO NOMBRE</label>
+          <input type="text" id="edit-nombre" placeholder="Ingresa tu nuevo nombre">
+        </div>
+        <div class="campo">
+          <label>// NUEVA CONTRASEÑA</label>
+          <input type="password" id="edit-pass" placeholder="••••••••">
+        </div>
+        <div class="campo">
+          <label>// CONFIRMAR CONTRASEÑA</label>
+          <input type="password" id="edit-pass2" placeholder="••••••••">
+        </div>
+        <div class="campo">
+          <label>// CONTRASEÑA ACTUAL *</label>
+          <input type="password" id="edit-pass-actual" placeholder="Requerida para guardar cambios">
+        </div>
+      </div>
+      <div class="msg" id="edit-msg"></div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-cyan" onclick="guardarPerfil()">GUARDAR CAMBIOS</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+
+function mostrarMsg(id, tipo, txt) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'msg ' + tipo;
+  el.textContent = txt;
+}
+function ocultarMsg(id) {
+  const el = document.getElementById(id);
+  if (el) { el.className = 'msg'; el.textContent = ''; }
+}
+
+function toast(msg, tipo = 'ok', dur = 3000) {
+  let t = document.getElementById('toast');
+  if (t) t.remove();
+  t = document.createElement('div');
+  t.id = 'toast';
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:28px;right:28px;padding:12px 20px;
+    background:#040d14;border:1px solid ${tipo==='ok'?'var(--cyan)':'var(--pink)'};
+    color:${tipo==='ok'?'var(--cyan)':'var(--pink)'};font-family:'Share Tech Mono',monospace;
+    font-size:12px;letter-spacing:1px;border-radius:2px;
+    box-shadow:0 0 24px ${tipo==='ok'?'rgba(0,255,231,0.12)':'rgba(255,45,120,0.12)'};
+    z-index:9999;opacity:0;transition:opacity 0.3s ease;`;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity = '1'; });
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, dur);
+}
+
+function irA(id, btn) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function logout() {
+  sessionStorage.removeItem('usuario');
+  window.location.href = '/';
+}
+
+// ── SESIÓN ────────────────────────────────────────────────────────────────────
+
+let sesion = null;
+
+function cargarSesion() {
+    //el sessionStorage contiene la información de nuestro usuario
+  const raw = sessionStorage.getItem('usuario');
+  if (!raw) { window.location.href = '/'; return; }
+  sesion = JSON.parse(raw); //obtener la información de la session
+
+  // Header
+  document.getElementById('hdr-nombre').textContent = sesion.nombre || '—';
+  document.getElementById('hdr-depto').textContent  = sesion.depto  || '—';
+
+  // Perfil - para el nav
+  document.getElementById('prf-colegio').value = sesion.colegio || '—';
+  document.getElementById('prf-nombre').value  = sesion.nombre  || '—';
+  document.getElementById('prf-tipo').value    = sesion.tipo    || '—';
+  document.getElementById('prf-depto').value   = sesion.depto   || '—';
+  document.getElementById('prf-espec').value   = sesion.espec   || '—';
+
+  // Aplicar permisos por departamento
+    aplicarPermisos(sesion.depto);
+}
+
+//======================================= acá vemos qué paneles se mostrarán a cada usuario=======================
+function aplicarPermisos(depto){
+    // tenemos que ver qué contenido verá cada departamento
+    const permisos = {
+        'DEP-MED': { med: true,  eq: false, sum: true  },
+        'DEP-CIR': { med: false, eq: true,  sum: true  },
+        'DEP-LAB': { med: false, eq: true,  sum: false },
+        'DEP-FAR': { med: true,  eq: false, sum: false },
+        'DEP-ADM': { med: true,  eq: true,  sum: true  },
+    };
+
+    const p = permisos[depto] || { med: false, eq: false, sum: false }; // ya si no encuentra depto, no verá nada
+
+    // Mostrar u ocultar secciones
+    document.getElementById('sec-medicamentos').style.display = p.med ? 'block' : 'none';
+    document.getElementById('sec-equipos').style.display      = p.eq  ? 'block' : 'none';
+    document.getElementById('sec-suministros').style.display  = p.sum ? 'block' : 'none';
+
+
+    // Actualizar nav, para ocultar botones sin permiso
+    const navMed = document.querySelector('[onclick*="sec-medicamentos"]');
+    const navEq  = document.querySelector('[onclick*="sec-equipos"]');
+    const navSum = document.querySelector('[onclick*="sec-suministros"]');
+}
+
+// =============================== MEDICAMENTOS ===========================================
+//se parece a la que hicimos del lado del admin
+
+async function buscarMedicamento() {
+  let cod = document.getElementById('med-cod').value.trim().toUpperCase();
+  if (!cod) return;
+  if (!cod.startsWith('MED')) cod = 'MED' + cod;
+
+  try {
+    const res  = await fetch('/medicamentos/' + cod);
+    const data = await res.json();
+
+    if (data.ok) {
+      document.getElementById('med-r-codigo').textContent  = data.codigo;
+      document.getElementById('med-r-nombre').textContent  = data.nombre;
+      document.getElementById('med-r-activo').textContent  = data.principio_activo || '—';
+      document.getElementById('med-r-fab').textContent     = data.fabricante;
+      document.getElementById('med-r-cantidad').textContent = data.cantidad;
+      document.getElementById('med-r-minimo').textContent  = data.minimo;
+      document.getElementById('med-r-vence').textContent   = data.vence || '—';
+      document.getElementById('med-r-precio').textContent  = 'Q' + data.precio;
+
+      const bajo = data.cantidad < data.minimo;
+      document.getElementById('med-alerta').style.display = bajo ? 'flex' : 'none';
+      document.getElementById('med-resultado').style.display = 'block';
+      ocultarMsg('med-msg');
+    } else {
+      document.getElementById('med-resultado').style.display = 'none';
+      mostrarMsg('med-msg', 'error', '> ' + data.mensaje.toUpperCase());
+    }
+  } catch(e) {
+    mostrarMsg('med-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+  }
+}
+
+// =========================================== EQUIPOS ===========================================
+//=================================================================================================================================
+async function buscarEquipo() {
+  let cod = document.getElementById('eq-cod').value.trim().toUpperCase();
+  if (!cod) return;
+  if (!cod.startsWith('EQU')) cod = 'EQU' + cod;
+
+  try {
+    const res  = await fetch('/equipos/' + cod);
+    const data = await res.json();
+
+    if (data.ok) {
+      document.getElementById('eq-r-codigo').textContent   = data.codigo;
+      document.getElementById('eq-r-nombre').textContent   = data.nombre;
+      document.getElementById('eq-r-fab').textContent      = data.fabricante;
+      document.getElementById('eq-r-precio').textContent   = 'Q' + data.precio;
+      document.getElementById('eq-r-cantidad').textContent = data.cantidad;
+      document.getElementById('eq-r-minimo').textContent   = data.minimo;
+      document.getElementById('eq-r-fecha').textContent    = data.fecha_ingreso || '—';
+
+      const bajo = data.cantidad < data.minimo;
+      document.getElementById('eq-r-estado').innerHTML =
+        `<span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span>`;
+      document.getElementById('eq-alerta').style.display   = bajo ? 'flex' : 'none';
+      document.getElementById('eq-resultado').style.display = 'block';
+      ocultarMsg('eq-msg');
+    } else {
+      document.getElementById('eq-resultado').style.display = 'none';
+      mostrarMsg('eq-msg', 'error', '> ' + data.mensaje.toUpperCase());
+    }
+  } catch(e) {
+    mostrarMsg('eq-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+  }
+}
+
+// =========================================== SUMINISTROS ===========================================
+//=================================================================================================================================
+async function buscarSuministro() {
+  let cod = document.getElementById('sum-cod').value.trim().toUpperCase();
+  if (!cod) return;
+  if (!cod.startsWith('SUM')) cod = 'SUM' + cod;
+
+  try {
+    const res  = await fetch('/suministros/' + cod);
+    const data = await res.json();
+
+    if (data.ok) {
+      document.getElementById('sum-r-codigo').textContent   = data.codigo;
+      document.getElementById('sum-r-nombre').textContent   = data.nombre;
+      document.getElementById('sum-r-fab').textContent      = data.fabricante;
+      document.getElementById('sum-r-precio').textContent   = 'Q' + data.precio;
+      document.getElementById('sum-r-cantidad').textContent = data.cantidad;
+      document.getElementById('sum-r-minimo').textContent   = data.minimo;
+      document.getElementById('sum-r-vence').textContent    = data.vence || '—';
+
+      const bajo = data.cantidad < data.minimo;
+      document.getElementById('sum-r-estado').innerHTML =
+        `<span class="badge-stock ${bajo?'badge-low':'badge-ok'}">${bajo?'STOCK BAJO':'OK'}</span>`;
+      document.getElementById('sum-alerta').style.display    = bajo ? 'flex' : 'none';
+      document.getElementById('sum-resultado').style.display = 'block';
+      ocultarMsg('sum-msg');
+    } else {
+      document.getElementById('sum-resultado').style.display = 'none';
+      mostrarMsg('sum-msg', 'error', '> ' + data.mensaje.toUpperCase());
+    }
+  } catch(e) {
+    mostrarMsg('sum-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+  }
+}
+
+// =========================================== PERFIL ===========================================
+
+async function guardarPerfil() {
+  const nuevoNombre = document.getElementById('edit-nombre').value.trim();
+  const nuevaPass   = document.getElementById('edit-pass').value;
+  const confirmaPass = document.getElementById('edit-pass2').value;
+  const passActual  = document.getElementById('edit-pass-actual').value;
+
+  if (!passActual) {
+    mostrarMsg('edit-msg', 'error', '> ERROR :: INGRESA TU CONTRASEÑA ACTUAL PARA CONFIRMAR');
+    return;
+  }
+  if (!nuevoNombre && !nuevaPass) {
+    mostrarMsg('edit-msg', 'error', '> ERROR :: INGRESA AL MENOS UN CAMPO A MODIFICAR');
+    return;
+  }
+  if (nuevaPass && nuevaPass !== confirmaPass) {
+    mostrarMsg('edit-msg', 'error', '> ERROR :: LAS CONTRASEÑAS NO COINCIDEN');
+    return;
+  }
+
+  try {
+    const res  = await fetch('/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        colegio:       sesion.colegio,
+        pass_actual:   passActual,
+        nuevo_nombre:  nuevoNombre || undefined,
+        nueva_pass:    nuevaPass   || undefined,
+      })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      // Actualizar sessionStorage con los nuevos datos
+      if (nuevoNombre) {
+        sesion.nombre = nuevoNombre;
+        sessionStorage.setItem('usuario', JSON.stringify(sesion));
+        document.getElementById('prf-nombre').value  = nuevoNombre;
+        document.getElementById('hdr-nombre').textContent = nuevoNombre;
+      }
+      mostrarMsg('edit-msg', 'ok', '> PERFIL ACTUALIZADO EXITOSAMENTE');
+      document.getElementById('edit-nombre').value     = '';
+      document.getElementById('edit-pass').value       = '';
+      document.getElementById('edit-pass2').value      = '';
+      document.getElementById('edit-pass-actual').value = '';
+      toast('> PERFIL ACTUALIZADO', 'ok');
+    } else {
+      mostrarMsg('edit-msg', 'error', '> ERROR :: ' + data.mensaje.toUpperCase());
+    }
+  } catch(e) {
+    mostrarMsg('edit-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+  }
+}
+
+// =========================================== OBSERVER NAV ===========================================
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(entry.target.id)) {
+          btn.classList.add('active');
+        }
+      });
+    }
+  });
+}, { threshold: 0.4 });
+
+document.querySelectorAll('.seccion').forEach(sec => observer.observe(sec));
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+cargarSesion();
+</script>
+</body>
+</html>

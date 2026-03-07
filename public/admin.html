@@ -429,12 +429,11 @@
 <div class="nav-bar">
   <button class="nav-item active" onclick="scrollTo('sec-carga')">01 // CARGA MASIVA</button>
   <button class="nav-item" onclick="scrollTo('sec-medicamentos')">02 // MEDICAMENTOS</button>
-  <button class="nav-item" onclick="scrollTo('sec-proveedores')">03 // PROVEEDORES</button>
+  <button class="nav-item" onclick="scrollTo('sec-matriz')">03 // MATRIZ DISPERSA</button>
   <button class="nav-item" onclick="scrollTo('sec-carga-usuarios')">04 // CARGA MASIVA USUARIOS</button>
-  <button class="nav-item" onclick="scrollTo('sec-personal-agregar')">05 // AGREGAR PERSONAL</button>
-  <button class="nav-item" onclick="scrollTo('sec-personal')">06 // PERSONAL (AVL)</button>
-  <button class="nav-item" onclick="scrollTo('sec-equipos')">07 // EQUIPOS (BST)</button>
-  <button class="nav-item" onclick="scrollTo('sec-suministros')">08 // SUMINISTROS (B)</button>
+  <button class="nav-item" onclick="scrollTo('sec-personal')">05 // PERSONAL (AVL)</button>
+  <button class="nav-item" onclick="scrollTo('sec-equipos')">06 // EQUIPOS (BST)</button>
+  <button class="nav-item" onclick="scrollTo('sec-suministros')">07 // SUMINISTROS (B)</button>
 </div>
 
 <!-- MAIN -->
@@ -533,19 +532,49 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!-- SEC 03 — PROVEEDORES                   -->
-  <!-- ═══════════════════════════════════════ -->
-  <div class="seccion" id="sec-proveedores">
-    <div class="sec-header">
-      <div class="sec-num">03</div>
-      <div class="sec-title">PROVEEDORES</div>
-      <div class="sec-line"></div>
-    </div>
-    <div class="card">
-      <div class="coming-soon">> SECCIÓN EN DESARROLLO //<br><span>PRÓXIMAMENTE: GESTIÓN DE PROVEEDORES</span></div>
-    </div>
+  <!-- ═══════════════════════════════════════════ -->
+<!-- SEC — MATRIZ DISPERSA                     -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="seccion" id="sec-matriz">
+  <div class="sec-header">
+    <div class="sec-num">03</div>
+    <div class="sec-title">MATRIZ DISPERSA // PROVEEDOR × FABRICANTE</div>
+    <div class="sec-line"></div>
   </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                margin-bottom:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;
+                  color:var(--cyan);letter-spacing:2px;">
+        // RELACIONES ACTIVAS PROVEEDOR → FABRICANTE
+      </div>
+      <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+              onclick="cargarMatriz()">ACTUALIZAR</button>
+    </div>
+
+    <!-- Info -->
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:1.8;">
+      > FILAS &nbsp;&nbsp;: PROVEEDORES<br>
+      > COLUMNAS: FABRICANTES<br>
+      > CELDAS &nbsp;: CANTIDAD TOTAL ENTREGADA
+    </div>
+
+    <!-- Tabla dinámica -->
+    <div class="table-wrap" id="matriz-wrap">
+      <div style="text-align:center;color:var(--dim);padding:30px;
+                  font-family:'Share Tech Mono',monospace;font-size:12px;">
+        > PRESIONA ACTUALIZAR PARA CARGAR LA MATRIZ
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;
+                color:var(--dim);margin-top:10px;letter-spacing:1px;"
+         id="matriz-label"></div>
+  </div>
+</div>
 
 
   <!-- ═══════════════════════════════════════════ -->
@@ -953,7 +982,7 @@ function scrollTo(id) {
 }
 
 // Marcar nav activo al scrollear
-const secciones = ['sec-carga','sec-medicamentos','sec-proveedores','sec-carga-usuarios', 'sec-personal-agregar','sec-personal','sec-equipos','sec-suministros'];
+const secciones = ['sec-carga','sec-medicamentos','sec-matriz','sec-carga-usuarios','sec-personal','sec-equipos','sec-suministros'];
 window.addEventListener('scroll', () => {
   let actual = secciones[0];
   secciones.forEach(id => {
@@ -1720,6 +1749,79 @@ async function cargarPersonal(recorrido = 'inorden') {
 
 // Alias para llamarlo desde carga masiva, es para referescar la tabla del personal
 function cargarUsuariosTabla() { cargarPersonal('inorden'); }
+
+//=======================================================================================================
+//=============================================PARA LA CARGA DE DATOS DE LA MATRIZ=====================
+async function cargarMatriz() {
+    try {
+        const res  = await fetch('/matriz');
+        const data = await res.json();
+        const wrap  = document.getElementById('matriz-wrap');
+        const label = document.getElementById('matriz-label');
+
+        if (!data.filas || data.filas.length === 0) {
+            wrap.innerHTML = '<div style="text-align:center;color:var(--dim);padding:30px;' +
+                'font-family:\'Share Tech Mono\',monospace;font-size:12px;">' +
+                '> SIN DATOS — CARGA UN JSON DE INVENTARIO PRIMERO</div>';
+            return;
+        }
+
+        const filas    = data.filas;
+        const columnas = data.columnas;
+        const celdas   = data.celdas;
+
+        // Construir mapa rápido celda[fila][columna] = cantidad
+        const mapa = {};
+        celdas.forEach(c => {
+            if (!mapa[c.fila]) mapa[c.fila] = {};
+            mapa[c.fila][c.columna] = c.cantidad;
+        });
+
+        // Construir tabla
+        let html = '<table><thead><tr>';
+        html += '<th style="color:var(--pink);">PROVEEDOR \\ FABRICANTE</th>';
+        //acá construímos la columnas
+        columnas.forEach(col => {
+            html += `<th style="color:var(--yellow,#f5e642);">${col}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+          //acá construímos las filas de la tabla para comparar
+        filas.forEach(fila => {
+            html += `<tr><td style="color:var(--pink);font-weight:bold;">${fila}</td>`;
+            columnas.forEach(col => {
+                const cant = mapa[fila]?.[col];
+                if (cant !== undefined) {
+                    html += `<td>
+                        <span style="
+                            display:inline-block;
+                            padding:4px 10px;
+                            background:rgba(0,255,231,0.08);
+                            border:1px solid rgba(0,255,231,0.2);
+                            border-radius:2px;
+                            color:var(--cyan);
+                            font-family:'Share Tech Mono',monospace;
+                            font-size:12px;
+                        ">${cant.toLocaleString()}</span>
+                    </td>`;
+                } else {
+                    // Celda vacía — no hay relación
+                    html += `<td style="color:var(--dim);text-align:center;">—</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+
+        label.textContent = `> ${filas.length} PROVEEDORES × ${columnas.length} FABRICANTES — ` +
+                            `${celdas.length} RELACIONES ACTIVAS`;
+
+    } catch(e) {
+        console.error(e);
+    }
+}
 
 // Al cargar la página
 cargarStats();
