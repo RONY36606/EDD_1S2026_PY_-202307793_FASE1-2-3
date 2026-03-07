@@ -969,12 +969,12 @@
 </div><!-- /main -->
 
 <script>
-// ── SESIÓN ──
+// ==================================== SESIÓN ====================================
 const sesion = JSON.parse(sessionStorage.getItem('usuario') || '{}');
 if (!sesion.ok || sesion.rol !== 'admin') window.location.href = '/';
 document.getElementById('user-badge').textContent = '// ' + (sesion.nombre || 'ADMIN').toUpperCase();
 
-// ── NAV SCROLL ──
+// ==================================== NAV SCROLL ====================================
 function scrollTo(id) {
   document.getElementById(id).scrollIntoView({ behavior:'smooth' });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -993,13 +993,13 @@ window.addEventListener('scroll', () => {
   document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===idx));
 });
 
-// ── LOGOUT ──
+// ==================================== LOGOUT ====================================
 function cerrarSesion() {
   sessionStorage.clear();
   window.location.href = '/';
 }
 
-// ── DRAG & DROP ──
+// ==================================== DRAG & DROP ====================================
 function dragOver(e) {
   e.preventDefault();
   document.getElementById('upload-zone').classList.add('drag');
@@ -1014,7 +1014,7 @@ function onDrop(e) {
   if (file) procesarArchivo(file);
 }
 
-// ── ARCHIVO SELECCIONADO ──
+// ==================================== ARCHIVO SELECCIONADO ====================================
 function archivoSeleccionado(e) {
   const file = e.target.files[0];
   if (file) procesarArchivo(file);
@@ -1096,27 +1096,35 @@ async function cargarCSV() {
   //este será el json que se enviará a perl
   const formData = new FormData();
   formData.append('json', archivoActual);
+  let msg = '';
 
   try {
     const res  = await fetch('/carga-masiva', { method:'POST', body: formData });
     const data = await res.json();
 
     if (data.ok) {
+      msg = `> CARGA EXITOSA :: ${data.medicamentos} MEDICAMENTOS | ${data.equipos} EQUIPOS | ${data.suministros} SUMINISTROS | ${data.errores.length} ERRORES`;
      mostrarMsg('carga-msg', 'ok',
     `> CARGA EXITOSA :: ${data.medicamentos} MEDICAMENTOS | ${data.equipos} EQUIPOS | ${data.suministros} SUMINISTROS | ${data.errores.length} ERRORES`
 );
       cargarStats();
       cargarMedicamentos();
     } else {
+      msg = '> ERROR :: ' + (data.mensaje || '').toUpperCase();
       mostrarMsg('carga-msg', 'error', '> ERROR :: ' + (data.mensaje || '').toUpperCase());
     }
   } catch(e) {
+    msg = '> ERROR :: FALLO AL CONECTAR CON EL SERVIDOR';
     mostrarMsg('carga-msg', 'error', '> ERROR :: FALLO AL CONECTAR CON EL SERVIDOR');
   }
+  limpiarUpload();
+  toast(msg,'ok')
 
   btn.innerHTML = 'PROCESAR json';
   btn.disabled = false;
 }
+
+
 
 function limpiarUpload() {
   archivoActual = null;
@@ -1551,7 +1559,7 @@ async function cargarUsuarios() {
     }
 }
 
-//Esto es para limpiar el espacio de carga del Drag and drop
+//=========================Esto es para limpiar el espacio de carga del Drag and drop=========================
 
 function limpiarCargaUsr() {
     archivoActualUsr = null;
@@ -1565,9 +1573,9 @@ function limpiarCargaUsr() {
     ocultarMsg('carga-usr-msg');
 }
 
-//función para la alerta
+//=========================función para la alerta=============================
 
-function toast(msg, tipo = 'ok', duracion = 3000) {
+function toast(msg, tipo = 'ok', duracion = 5000) {
     // Quitar toast anterior si existe
     const anterior = document.getElementById('toast');
     if (anterior) anterior.remove();

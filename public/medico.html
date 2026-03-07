@@ -689,6 +689,7 @@ function toast(msg, tipo = 'ok', dur = 3000) {
   setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, dur);
 }
 
+//Esto es para los botones de arriba, para el nav donde se mira en qué sección estamos 
 function irA(id, btn) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
@@ -701,7 +702,7 @@ function logout() {
   window.location.href = '/';
 }
 
-// ── SESIÓN ────────────────────────────────────────────────────────────────────
+// ================================ SESIÓN ==================================================
 
 let sesion = null;
 
@@ -749,6 +750,15 @@ function aplicarPermisos(depto){
     const navMed = document.querySelector('[onclick*="sec-medicamentos"]');
     const navEq  = document.querySelector('[onclick*="sec-equipos"]');
     const navSum = document.querySelector('[onclick*="sec-suministros"]');
+     if (navMed) navMed.style.display = p.med ? 'block' : 'none';
+    if (navEq)  navEq.style.display  = p.eq  ? 'block' : 'none';
+    if (navSum) navSum.style.display  = p.sum ? 'block' : 'none';
+
+    // Hacer scroll a la primera sección visible
+    if      (p.med) irA('sec-medicamentos', navMed);
+    else if (p.eq)  irA('sec-equipos', navEq);
+    else if (p.sum) irA('sec-suministros', navSum);
+    else            irA('sec-perfil', document.querySelector('[onclick*="sec-perfil"]'));
 }
 
 // =============================== MEDICAMENTOS ===========================================
