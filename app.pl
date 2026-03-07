@@ -31,9 +31,6 @@ my $arbolAVL = arbolAvl->new;
 my $arbolBST = arbolBST->new;
 my $arbolB   = arbolB->new;
 
-$arbolAVL->insertar('COL-10245', { nombre=>'Ana Ramirez',     tipo=>'TIPO-01', depto=>'DEP-MED', espec=>'Medicina General',       pass=>'medgen2026'  });
-$arbolAVL->insertar('COL-10389', { nombre=>'Roberto Aguilar', tipo=>'TIPO-02', depto=>'DEP-CIR', espec=>'Cirugia Cardiovascular', pass=>'cirugia2026' });
-$arbolAVL->insertar('COL-20134', { nombre=>'Maria Paz',        tipo=>'TIPO-03', depto=>'DEP-FAR', espec=>'',                       pass=>'enf2026far'  });
 
 
 sub generar_codigo_med {
@@ -64,21 +61,43 @@ post '/login' => sub ($c) {
 
 post '/registro' => sub ($c) {
     my $d       = decode_json($c->req->body);
-    my $colegio = $d->{numero_colegio} // '';
-    my $nombre  = $d->{nombre}         // '';
-    my $tipo    = $d->{tipo_usuario}   // '';
-    my $depto   = $d->{departamento}   // '';
-    my $espec   = $d->{especialidad}   // '';
-    my $pass    = $d->{contrasena}     // '';
+    my $colegio = trim($d->{numero_colegio} // '');
+    my $nombre  = trim($d->{nombre}         // '');
+    my $tipo    = trim($d->{tipo_usuario}   // '');
+    my $depto   = trim($d->{departamento}   // '');
+    my $espec   = trim($d->{especialidad}   // '');
+    my $pass    = $d->{contrasena}          // '';
 
-    return $c->render(json => { ok=>0, mensaje=>'Complete todos los campos' })
+    # Validar campos obligatorios
+    return $c->render(json => { ok=>0, mensaje=>'Complete todos los campos obligatorios' })
         unless $colegio && $nombre && $tipo && $depto && $pass;
 
-    return $c->render(json => { ok=>0, mensaje=>"$colegio ya esta registrado" })
+    # Validar tipo
+    return $c->render(json => { ok=>0, mensaje=>"Tipo '$tipo' no reconocido" })
+        unless $tipo =~ /^TIPO-0[1-5]$/;
+
+    # Validar departamento
+    return $c->render(json => { ok=>0, mensaje=>"Departamento '$depto' no reconocido" })
+        unless $depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/;
+
+    # Especialidad obligatoria para TIPO-01 y TIPO-02
+    return $c->render(json => { ok=>0, mensaje=>'Especialidad requerida para este tipo de usuario' })
+        if ($tipo eq 'TIPO-01' || $tipo eq 'TIPO-02') && !$espec;
+
+    # Verificar duplicado en AVL
+    return $c->render(json => { ok=>0, mensaje=>"$colegio ya esta registrado en el sistema" })
         if defined $arbolAVL->buscar($colegio);
 
-     $arbolAVL->insertar($colegio, { nombre=>$nombre, tipo=>$tipo, depto=>$depto, espec=>$espec, pass=>$pass });
-    return $c->render(json => { ok=>1, mensaje=>'Usuario registrado exitosamente' });
+    # Insertar en AVL
+    $arbolAVL->insertar($colegio, {
+        nombre => $nombre,
+        tipo   => $tipo,
+        depto  => $depto,
+        espec  => $espec,
+        pass   => $pass,
+    });
+
+    return $c->render(json => { ok=>1, mensaje=>"$colegio registrado exitosamente" });
 };
 
 
@@ -142,9 +161,6 @@ get '/medicamentos' => sub ($c) {
     $c->render(json => { ok=>1, medicamentos=>\@lista });
 };
 
-# POST /carga-masiva → Procesa CSV de medicamentos
-# POST /carga-masiva — Funcion 1 del enunciado
-# JSON con clave "proveedor": array de proveedores, cada uno con "entrega": []
 post '/carga-masiva' => sub ($c) {
     my $upload = $c->req->upload('json');
 
@@ -519,6 +535,137 @@ del '/suministros/:codigo' => sub ($c) {
 
     $arbolB->eliminar($codigo);
     $c->render(json => { ok=>1, mensaje=>"$codigo eliminado exitosamente" });
+};
+
+#================================== PARA REGISTRAR USUARIOS DENTRO DEL ÁRBOL AVL=================================
+post '/carga-usuarios' => sub ($c) {
+    my $upload = $c->req->upload('json');
+
+    #siempre se comprueba que el usuario envíe un archivo json
+    unless ($upload && $upload->filename =~ /\.json$/i) {
+        return $c->render(json => { ok=>0, mensaje=>'El archivo debe ser .json' });
+    }
+
+    my $data;
+    eval { $data = decode_json($upload->slurp); };
+    if ($@) {
+        return $c->render(json => { ok=>0, mensaje=>'JSON malformado: ' . $@ });
+    }
+
+    #verificamos la estructura del json, para ver si nos sirve
+    unless (ref($data->{usuarios}) eq 'ARRAY') {
+        return $c->render(json => { ok=>0, mensaje=>'El JSON debe tener la clave "usuarios" como array' });
+    }
+
+    #verificar si hay duplicados y llevar conteo de errores
+    my ($insertados, $duplicados) = (0, 0);
+    my @errores;
+
+    for my $u (@{ $data->{usuarios} }) {
+        my $col   = trim($u->{numero_colegio}  // '');
+        my $nom   = trim($u->{nombre_completo} // '');
+        my $tipo  = trim($u->{tipo_usuario}    // '');
+        my $depto = trim($u->{departamento}    // '');
+        my $espec = trim($u->{especialidad}    // '');
+        my $pass  = $u->{contrasena}           // '';
+
+        # Validar campos obligatorios
+        unless ($col && $nom && $tipo && $depto && $pass) {
+            push @errores, "$col: campos incompletos, omitido";
+            next;
+        }
+
+        # Validar tipo de usuario
+        unless ($tipo =~ /^TIPO-0[1-5]$/) {
+            push @errores, "$col: tipo '$tipo' no reconocido, omitido";
+            next;
+        }
+
+        # Validar departamento
+        unless ($depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/) {
+            push @errores, "$col: departamento '$depto' no reconocido, omitido";
+            next;
+        }
+
+        # Verificar duplicado en AVL, si es así, se omite
+        if (defined $arbolAVL->buscar($col)) {
+            push @errores, "$col ya registrado, omitido";
+            $duplicados++;
+            next;
+        }
+
+        # Insertar en árbol AVL
+        $arbolAVL->insertar($col, {
+            nombre => $nom,
+            tipo   => $tipo,
+            depto  => $depto,
+            espec  => $espec,
+            pass   => $pass,
+        });
+        $insertados++;
+    }
+
+    #Enviar respuesta al JavaScript
+
+    return $c->render(json => {
+        ok         => 1,
+        insertados => $insertados,
+        duplicados => $duplicados,
+        errores    => \@errores,
+    });
+};
+
+#============================================ESTO ES PARA LA PARTE DEL MANEJO DEL PERSONAL=====================================
+#============================================================================================================================
+# buscar solamente a un usuario de entre todo el árbol
+get '/usuarios/:colegio' => sub ($c) {
+    my $colegio = $c->param('colegio');
+    my $u       = $arbolAVL->buscar($colegio);
+
+    unless (defined $u) {
+        return $c->render(json => { ok=>0, mensaje=>"Usuario $colegio no encontrado" });
+    }
+
+    $c->render(json => {
+        ok             => 1,
+        numero_colegio => $colegio,
+        nombre         => $u->{nombre},
+        tipo           => $u->{tipo},
+        departamento   => $u->{depto},
+        especialidad   => $u->{espec} // '',
+    });
+};
+
+# tomar a los usuarios en el recorrido deseado
+get '/usuarios' => sub ($c) {
+    my $recorrido = $c->param('recorrido') // 'inorden';
+    my $lista;
+
+    if    ($recorrido eq 'preorden')  { $lista = $arbolAVL->preorden;  }
+    elsif ($recorrido eq 'postorden') { $lista = $arbolAVL->postorden; }
+    else                              { $lista = $arbolAVL->inorden;   }
+
+    my @resultado = map {{
+        numero_colegio => $_->{clave},
+        nombre         => $_->{valor}{nombre},
+        tipo           => $_->{valor}{tipo},
+        departamento   => $_->{valor}{depto},
+        especialidad   => $_->{valor}{espec} // '',
+    }} @$lista;
+
+    $c->render(json => { ok=>1, usuarios=>\@resultado });
+};
+
+# eliminar al usuario que está en el campo de bsucar
+del '/usuarios/:colegio' => sub ($c) {
+    my $colegio = $c->param('colegio');
+
+    unless (defined $arbolAVL->buscar($colegio)) {
+        return $c->render(json => { ok=>0, mensaje=>"Usuario $colegio no encontrado" });
+    }
+
+    $arbolAVL->eliminar($colegio);
+    $c->render(json => { ok=>1, mensaje=>"$colegio eliminado exitosamente" });
 };
 
 app->start;

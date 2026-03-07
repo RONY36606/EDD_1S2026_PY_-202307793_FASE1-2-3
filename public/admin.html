@@ -248,9 +248,58 @@
 
     /* Campos */
 
+    /* =================================== SELECT ========================================= */
+.campo select {
+    width: 100%;
+    padding: 11px 14px;
+    background: rgba(0,255,231,0.03);
+    border: 1px solid rgba(0,255,231,0.18);
+    border-radius: 2px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--cyan);
+    outline: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    /* Quita la flecha nativa del navegador */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Flecha personalizada en cian */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300ffe7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+}
+
+.campo select:focus {
+    border-color: var(--cyan);
+    background-color: rgba(0,255,231,0.06);
+    box-shadow: 0 0 18px rgba(0,255,231,0.1);
+}
+
+.campo select:hover {
+    border-color: rgba(0,255,231,0.4);
+}
+
+/* Opciones del dropdown */
+.campo select option {
+    background: #040d14;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    padding: 8px;
+}
+
+/* Opción placeholder (— SELECCIONAR —) */
+.campo select option[value=""] {
+    color: var(--dim);
+}
+
   /* Asegura que number y date tengan el mismo estilo */
 .campo input[type="number"],
 .campo input[type="text"],
+.campo input[type="select"],
+.campo input[type="password"],
 .campo input[type="date"] {
     width: 100%;
     padding: 11px 14px;
@@ -381,34 +430,17 @@
   <button class="nav-item active" onclick="scrollTo('sec-carga')">01 // CARGA MASIVA</button>
   <button class="nav-item" onclick="scrollTo('sec-medicamentos')">02 // MEDICAMENTOS</button>
   <button class="nav-item" onclick="scrollTo('sec-proveedores')">03 // PROVEEDORES</button>
-  <button class="nav-item" onclick="scrollTo('sec-solicitudes')">04 // SOLICITUDES</button>
-  <button class="nav-item" onclick="scrollTo('sec-personal')">05 // PERSONAL (AVL)</button>
-  <button class="nav-item" onclick="scrollTo('sec-equipos')">06 // EQUIPOS (BST)</button>
-  <button class="nav-item" onclick="scrollTo('sec-suministros')">07 // SUMINISTROS (B)</button>
+  <button class="nav-item" onclick="scrollTo('sec-carga-usuarios')">04 // CARGA MASIVA USUARIOS</button>
+  <button class="nav-item" onclick="scrollTo('sec-personal-agregar')">05 // AGREGAR PERSONAL</button>
+  <button class="nav-item" onclick="scrollTo('sec-personal')">06 // PERSONAL (AVL)</button>
+  <button class="nav-item" onclick="scrollTo('sec-equipos')">07 // EQUIPOS (BST)</button>
+  <button class="nav-item" onclick="scrollTo('sec-suministros')">08 // SUMINISTROS (B)</button>
 </div>
 
 <!-- MAIN -->
 <div class="main">
 
-  <!-- STATS -->
-  <div class="stats-row" style="margin-bottom:32px;" id="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">// MEDICAMENTOS</div>
-      <div class="stat-val" id="stat-meds">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">// STOCK BAJO</div>
-      <div class="stat-val pink" id="stat-bajo">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">// PROVEEDORES</div>
-      <div class="stat-val" id="stat-provs">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">// SOLICITUDES PEND.</div>
-      <div class="stat-val yellow" id="stat-sols">0</div>
-    </div>
-  </div>
+  
 
   <!-- ═══════════════════════════════════════ -->
   <!-- SEC 01 — CARGA MASIVA CSV              -->
@@ -515,33 +547,192 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!-- SEC 04 — SOLICITUDES                   -->
-  <!-- ═══════════════════════════════════════ -->
-  <div class="seccion" id="sec-solicitudes">
-    <div class="sec-header">
-      <div class="sec-num">04</div>
-      <div class="sec-title">SOLICITUDES REABASTECIMIENTO</div>
-      <div class="sec-line"></div>
+
+  <!-- ═══════════════════════════════════════════ -->
+<!-- ESTO ES PARA LA CARGA MASIVA USUARIOS               -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="seccion" id="sec-carga-usuarios">
+  <div class="sec-header">
+    <div class="sec-num">04</div>
+    <div class="sec-title">CARGA MASIVA // USUARIOS</div>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:16px;">
+      // CARGAR ARCHIVO JSON DE USUARIOS
     </div>
-    <div class="card">
-      <div class="coming-soon">> SECCIÓN EN DESARROLLO //<br><span>PRÓXIMAMENTE: APROBAR / RECHAZAR SOLICITUDES</span></div>
+
+    
+
+    <!-- Drop zone -->
+    <div class="upload-zone" id="drop-zone-usr"
+         ondragover="event.preventDefault()"
+         ondrop="dropArchivo(event,'usr')"
+         onclick="document.getElementById('file-input-usr').click()">
+      <div class="drop-icon">👤</div>
+      <div class="drop-text" id="drop-text-usr">
+        ARRASTRA TU ARCHIVO JSON AQUÍ<br>
+        <span style="font-size:10px;color:var(--dim);">O CLICK PARA SELECCIONAR</span>
+      </div>
+      <input type="file" id="file-input-usr" accept=".json"
+             style="display:none" onchange="archivoSeleccionadoUsr(event)">
+    </div>
+
+    <!-- Preview tabla -->
+    <div id="preview-wrap-usr" style="display:none;margin-top:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:10px;color:var(--cyan);
+                  letter-spacing:2px;margin-bottom:10px;">
+        // PREVIEW — PRIMEROS 5 USUARIOS (dentro del archivo json)
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th>
+            <th>DEPARTAMENTO</th><th>ESPECIALIDAD</th>
+          </tr></thead>
+          <tbody id="preview-body-usr"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="msg" id="carga-usr-msg"></div>
+
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-cyan" id="btn-cargar-usr"
+              onclick="cargarUsuarios()" disabled>
+        PROCESAR USUARIOS
+      </button>
+      <button class="btn" onclick="limpiarCargaUsr()"
+              style="background:rgba(255,45,120,0.08);border-color:var(--pink);color:var(--pink);">
+        LIMPIAR
+      </button>
+    </div>
+  </div>
+</div>
+
+ <!-- ═══════════════════════════════════════════ -->
+<!-- SEC 05 — PERSONAL MÉDICO AVL              -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="seccion" id="sec-personal">
+  <div class="sec-header">
+    <div class="sec-num">05</div>
+    <div class="sec-title">PERSONAL MÉDICO // AVL</div>
+    <div class="sec-line"></div>
+  </div>
+
+  <!-- REGISTRAR USUARIO -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:16px;">
+      // REGISTRAR USUARIO DEPARTAMENTAL
+    </div>
+    <div class="grid2">
+      <div class="campo"><label>// N° COLEGIO PROFESIONAL *</label>
+        <input type="text" id="reg-colegio" placeholder="COL-XXXXX" spellcheck="false">
+      </div>
+      <div class="campo"><label>// NOMBRE COMPLETO *</label>
+        <input type="text" id="reg-nombre" placeholder="Ana Ramírez">
+      </div>
+      <div class="campo"><label>// TIPO DE USUARIO *</label>
+        <select id="reg-tipo" onchange="toggleEspecialidad()">
+          <option value="">— SELECCIONAR —</option>
+          <option value="TIPO-01">TIPO-01 — Médico General</option>
+          <option value="TIPO-02">TIPO-02 — Médico Especialista / Cirujano</option>
+          <option value="TIPO-03">TIPO-03 — Enfermero/a</option>
+          <option value="TIPO-04">TIPO-04 — Técnico de Laboratorio</option>
+          <option value="TIPO-05">TIPO-05 — Personal Administrativo</option>
+        </select>
+      </div>
+      <div class="campo"><label>// DEPARTAMENTO *</label>
+        <select id="reg-depto">
+          <option value="">— SELECCIONAR —</option>
+          <option value="DEP-ADM">DEP-ADM — Administración General</option>
+          <option value="DEP-MED">DEP-MED — Medicina General</option>
+          <option value="DEP-CIR">DEP-CIR — Cirugía y Quirófanos</option>
+          <option value="DEP-LAB">DEP-LAB — Laboratorio Clínico</option>
+          <option value="DEP-FAR">DEP-FAR — Farmacia Hospitalaria</option>
+        </select>
+      </div>
+      <div class="campo" id="campo-especialidad" style="display:none;">
+        <label>// ESPECIALIDAD <span style="color:var(--pink)">*</span></label>
+        <input type="text" id="reg-espec" placeholder="Medicina General, Cardiología...">
+      </div>
+      <div class="campo"><label>// CONTRASEÑA *</label>
+        <input type="password" id="reg-pass" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="msg" id="reg-msg"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-cyan" onclick="registrarUsuario()">REGISTRAR USUARIO</button>
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!-- SEC 05 — PERSONAL AVL                  -->
-  <!-- ═══════════════════════════════════════ -->
-  <div class="seccion" id="sec-personal">
-    <div class="sec-header">
-      <div class="sec-num">05</div>
-      <div class="sec-title">PERSONAL MÉDICO // AVL</div>
-      <div class="sec-line"></div>
+  <!-- BUSCAR / ELIMINAR -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:16px;">
+      // BUSCAR / ELIMINAR USUARIO
     </div>
-    <div class="card">
-      <div class="coming-soon">> ÁRBOL AVL — FASE 2 //<br><span>PRÓXIMAMENTE: GESTIÓN DE PERSONAL MÉDICO</span></div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="campo" style="flex:1;margin:0;">
+        <label>// N° COLEGIO</label>
+        <input type="text" id="per-buscar-cod" placeholder="COL-XXXXX" spellcheck="false"
+               onkeydown="if(event.key==='Enter') buscarUsuario()">
+      </div>
+      <button class="btn btn-cyan" style="margin:0;" onclick="buscarUsuario()">BUSCAR</button>
+      <button class="btn btn-pink" style="margin:0;" onclick="eliminarUsuario()">ELIMINAR</button>
+    </div>
+    <div class="msg" id="per-buscar-msg"></div>
+
+    <div id="per-resultado" style="display:none;margin-top:16px;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th>
+            <th>DEPARTAMENTO</th><th>ESPECIALIDAD</th>
+          </tr></thead>
+          <tbody id="per-resultado-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
+
+  <!-- TABLA PERSONAL — RECORRIDOS AVL -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                  letter-spacing:2px;">
+        // PERSONAL AUTORIZADO
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+                onclick="cargarPersonal('inorden')">IN-ORDEN</button>
+        <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+                onclick="cargarPersonal('preorden')">PRE-ORDEN</button>
+        <button class="btn btn-cyan" style="margin:0;padding:8px 14px;font-size:9px;"
+                onclick="cargarPersonal('postorden')">POST-ORDEN</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th>
+          <th>DEPARTAMENTO</th><th>ESPECIALIDAD</th>
+        </tr></thead>
+        <tbody id="tabla-personal">
+          <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">
+            > SELECCIONA UN RECORRIDO PARA VISUALIZAR
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);
+                margin-top:10px;letter-spacing:1px;" id="per-recorrido-label"></div>
+  </div>
+</div>
 
   <!-- ═══════════════════════════════════════ -->
   <!-- SEC 06 — EQUIPOS BST                   -->
@@ -762,7 +953,7 @@ function scrollTo(id) {
 }
 
 // Marcar nav activo al scrollear
-const secciones = ['sec-carga','sec-medicamentos','sec-proveedores','sec-solicitudes','sec-personal','sec-equipos','sec-suministros'];
+const secciones = ['sec-carga','sec-medicamentos','sec-proveedores','sec-carga-usuarios', 'sec-personal-agregar','sec-personal','sec-equipos','sec-suministros'];
 window.addEventListener('scroll', () => {
   let actual = secciones[0];
   secciones.forEach(id => {
@@ -1224,6 +1415,311 @@ async function cargarSuministros() {
         console.error(e);
     }
 }
+
+//==================================== ESTO ES PARA LA CARGA MASIVA DE USUARIOS====================================
+let archivoActualUsr = null;
+
+//funciones parecidas a las usadas en la carga masiva de equipos y demás
+function dropArchivo(event, tipo) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (!file) return;
+    if (tipo === 'usr') procesarArchivoUsr(file);
+}
+
+function archivoSeleccionadoUsr(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    procesarArchivoUsr(file);
+}
+
+function procesarArchivoUsr(file) {
+    if (!file.name.endsWith('.json')) {
+        mostrarMsg('carga-usr-msg', 'error', '> ERROR :: EL ARCHIVO DEBE SER .JSON');
+        return;
+    }
+
+    //mostrar el nomnre dentro del espacio del archivo
+    archivoActualUsr = file;
+    document.getElementById('drop-text-usr').innerHTML =
+        `> ARCHIVO: <span style="color:var(--cyan)">${file.name}</span><br>
+         <span style="font-size:10px;color:var(--dim);">${(file.size/1024).toFixed(1)} KB</span>`;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const json = JSON.parse(e.target.result);
+            const usuarios = json.usuarios || [];
+            const tbody = document.getElementById('preview-body-usr');
+            tbody.innerHTML = '';
+
+            // Preview primeros 5
+            usuarios.slice(0, 5).forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${u.numero_colegio || '—'}</td>
+                    <td>${u.nombre_completo || '—'}</td>
+                    <td>${u.tipo_usuario || '—'}</td>
+                    <td>${u.departamento || '—'}</td>
+                    <td>${u.especialidad || '—'}</td>`;
+                tbody.appendChild(tr);
+            });
+
+            // Si hay más de 5 mostrar cuántos quedan
+            if (usuarios.length > 5) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="5" style="text-align:center;color:var(--dim);
+                    font-size:10px;">... y ${usuarios.length - 5} usuarios más</td>`;
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById('preview-wrap-usr').style.display = 'block';
+            document.getElementById('btn-cargar-usr').disabled = false;
+            ocultarMsg('carga-usr-msg');
+
+        } catch(e) {
+            mostrarMsg('carga-usr-msg', 'error', '> ERROR :: EL ARCHIVO NO ES UN JSON VÁLIDO');
+        }
+    };
+    reader.readAsText(file);
+}
+
+async function cargarUsuarios() {
+    if (!archivoActualUsr) return;
+
+    const formData = new FormData();
+    formData.append('json', archivoActualUsr);
+
+    try {
+      //acá ya mandamos la información al backend de perl
+        mostrarMsg('carga-usr-msg', 'ok', '> PROCESANDO...');
+        const res  = await fetch('/carga-usuarios', { method:'POST', body:formData });
+        const data = await res.json();
+
+        if (data.ok) {
+            let msg = `> CARGA EXITOSA :: ${data.insertados} INSERTADOS`;
+            if (data.duplicados > 0) msg += ` | ${data.duplicados} DUPLICADOS`;
+            if (data.errores.length > 0) msg += ` | ${data.errores.length} ERRORES`;
+            toast(msg, 'ok');
+            mostrarMsg('carga-usr-msg', 'ok', msg);
+
+            // Mostrar errores si los hay
+            if (data.errores.length > 0) {
+                const detalles = data.errores.map(e => `> ${e}`).join('<br>');
+                document.getElementById('carga-usr-msg').innerHTML +=
+                    `<div style="margin-top:8px;font-size:10px;color:var(--pink);">${detalles}</div>`;
+            }
+
+            // Refrescar tabla de personal si está visible
+            if (typeof cargarUsuariosTabla === 'function') cargarUsuariosTabla();
+            limpiarCargaUsr();
+
+        } else {
+            mostrarMsg('carga-usr-msg', 'error', '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('carga-usr-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+//Esto es para limpiar el espacio de carga del Drag and drop
+
+function limpiarCargaUsr() {
+    archivoActualUsr = null;
+    document.getElementById('file-input-usr').value = '';
+    document.getElementById('drop-text-usr').innerHTML =
+        `ARRASTRA TU ARCHIVO JSON AQUÍ<br>
+         <span style="font-size:10px;color:var(--dim);">O CLICK PARA SELECCIONAR</span>`;
+    document.getElementById('preview-wrap-usr').style.display = 'none';
+    document.getElementById('preview-body-usr').innerHTML = '';
+    document.getElementById('btn-cargar-usr').disabled = true;
+    ocultarMsg('carga-usr-msg');
+}
+
+//función para la alerta
+
+function toast(msg, tipo = 'ok', duracion = 3000) {
+    // Quitar toast anterior si existe
+    const anterior = document.getElementById('toast');
+    if (anterior) anterior.remove();
+
+    const t = document.createElement('div');
+    t.id = 'toast';
+    t.innerHTML = msg;
+    t.style.cssText = `
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        padding: 12px 20px;
+        background: #040d14;
+        border: 1px solid ${tipo === 'ok' ? 'var(--cyan)' : 'var(--pink)'};
+        color: ${tipo === 'ok' ? 'var(--cyan)' : 'var(--pink)'};
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 12px;
+        letter-spacing: 1px;
+        border-radius: 2px;
+        box-shadow: 0 0 24px ${tipo === 'ok' ? 'rgba(0,255,231,0.12)' : 'rgba(255,45,120,0.12)'};
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+
+    document.body.appendChild(t);
+
+    // Fade in
+    requestAnimationFrame(() => { t.style.opacity = '1'; });
+
+    // Fade out y remover
+    setTimeout(() => {
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), 300);
+    }, duracion);
+}
+
+
+//E=====================================ESTO ES PARA LA PARTE DEL PERSONAL DE HOSPITAL==============================
+// ── PERSONAL MÉDICO AVL ───────────────────────────────────────────────────────
+
+function toggleEspecialidad() {
+    const tipo  = document.getElementById('reg-tipo').value;
+    const campo = document.getElementById('campo-especialidad');
+    // Solo TIPO-01 y TIPO-02 requieren especialidad
+    campo.style.display = (tipo === 'TIPO-01' || tipo === 'TIPO-02') ? 'block' : 'none';
+}
+
+async function registrarUsuario() {
+    const colegio = document.getElementById('reg-colegio').value.trim().toUpperCase();
+    const nombre  = document.getElementById('reg-nombre').value.trim();
+    const tipo    = document.getElementById('reg-tipo').value;
+    const depto   = document.getElementById('reg-depto').value;
+    const espec   = document.getElementById('reg-espec').value.trim();
+    const pass    = document.getElementById('reg-pass').value;
+
+    if (!colegio || !nombre || !tipo || !depto || !pass) {
+        mostrarMsg('reg-msg', 'error', '> ERROR :: COMPLETE TODOS LOS CAMPOS OBLIGATORIOS');
+        return;
+    }
+    if ((tipo === 'TIPO-01' || tipo === 'TIPO-02') && !espec) {
+        mostrarMsg('reg-msg', 'error', '> ERROR :: ESPECIALIDAD REQUERIDA PARA ESTE TIPO');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/registro', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                numero_colegio: colegio,
+                nombre, tipo_usuario: tipo,
+                departamento: depto,
+                especialidad: espec,
+                contrasena: pass
+            })
+        });
+        const data = await res.json();
+        mostrarMsg('reg-msg', data.ok ? 'ok' : 'error',
+            '> ' + data.mensaje.toUpperCase()
+        );
+        if (data.ok) {
+            ['reg-colegio','reg-nombre','reg-espec','reg-pass'].forEach(id =>
+                document.getElementById(id).value = ''
+            );
+            document.getElementById('reg-tipo').value  = '';
+            document.getElementById('reg-depto').value = '';
+            document.getElementById('campo-especialidad').style.display = 'none';
+            cargarPersonal('inorden');
+        }
+    } catch(e) {
+        mostrarMsg('reg-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+async function buscarUsuario() {
+    const colegio = document.getElementById('per-buscar-cod').value.trim().toUpperCase();
+    if (!colegio) return;
+
+    try {
+        const res  = await fetch('/usuarios/' + colegio);
+        const data = await res.json();
+
+        if (data.ok) {
+            document.getElementById('per-resultado-body').innerHTML = `
+                <tr>
+                  <td>${data.numero_colegio}</td>
+                  <td>${data.nombre}</td>
+                  <td>${data.tipo}</td>
+                  <td>${data.departamento}</td>
+                  <td>${data.especialidad || '—'}</td>
+                </tr>`;
+            document.getElementById('per-resultado').style.display = 'block';
+            ocultarMsg('per-buscar-msg');
+        } else {
+            document.getElementById('per-resultado').style.display = 'none';
+            mostrarMsg('per-buscar-msg', 'error', '> ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('per-buscar-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+//llamamos al endpoint de eliminación del árbol
+
+async function eliminarUsuario() {
+    const colegio = document.getElementById('per-buscar-cod').value.trim().toUpperCase();
+    if (!colegio) {
+        mostrarMsg('per-buscar-msg', 'error', '> ERROR :: INGRESA UN N° DE COLEGIO');
+        return;
+    }
+
+    try {
+        const res  = await fetch('/usuarios/' + colegio, { method: 'DELETE' });
+        const data = await res.json();
+        mostrarMsg('per-buscar-msg', data.ok ? 'ok' : 'error',
+            '> ' + data.mensaje.toUpperCase()
+        );
+        if (data.ok) {
+            document.getElementById('per-resultado').style.display = 'none';
+            document.getElementById('per-buscar-cod').value = '';
+            cargarPersonal('inorden');
+        }
+    } catch(e) {
+        mostrarMsg('per-buscar-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+
+//Esto es para mostrar el personal disponible en el hospital
+async function cargarPersonal(recorrido = 'inorden') {
+    try {
+        const res   = await fetch('/usuarios?recorrido=' + recorrido);
+        const data  = await res.json();
+        const tbody = document.getElementById('tabla-personal');
+        const label = document.getElementById('per-recorrido-label');
+
+        label.textContent = '> RECORRIDO: ' + recorrido.toUpperCase() +
+                            ' — ' + (data.usuarios?.length || 0) + ' USUARIOS';
+
+        if (!data.usuarios || data.usuarios.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> SIN REGISTROS</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.usuarios.map(u => `
+            <tr>
+              <td>${u.numero_colegio}</td>
+              <td>${u.nombre}</td>
+              <td>${u.tipo}</td>
+              <td>${u.departamento}</td>
+              <td>${u.especialidad || '—'}</td>
+            </tr>`
+        ).join('');
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+// Alias para llamarlo desde carga masiva, es para referescar la tabla del personal
+function cargarUsuariosTabla() { cargarPersonal('inorden'); }
 
 // Al cargar la página
 cargarStats();
