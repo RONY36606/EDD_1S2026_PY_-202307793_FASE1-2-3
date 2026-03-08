@@ -965,6 +965,113 @@
                 margin-top:10px;letter-spacing:1px;" id="sum-inorden-label"></div>
   </div>
   </div>
+  <!-- ═══════════════════════════════════════════ -->
+<!-- SEC 08 — REPORTES                         -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="seccion" id="sec-reportes">
+  <div class="sec-header">
+    <div class="sec-num">08</div>
+    <div class="sec-title">REPORTES // GRAPHVIZ</div>
+    <div class="sec-line"></div>
+  </div>
+
+  <!-- AVL -->
+  <div class="card">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+      // ÁRBOL AVL — PERSONAL MÉDICO
+    </div>
+
+    <div class="btn-row" style="margin-bottom:16px;">
+      <button class="btn btn-cyan" onclick="generarReporteAVL()">GENERAR REPORTE AVL</button>
+    </div>
+
+    <div class="msg" id="rpt-avl-msg"></div>
+
+    <div id="rpt-avl-wrap" style="display:none;margin-top:16px;">
+      <img id="rpt-avl-img" style="max-width:100%;border:1px solid var(--border);
+           border-radius:2px;" alt="Árbol AVL">
+      <div style="margin-top:10px;">
+        <a id="rpt-avl-dl" download="arbol_avl.png"
+           style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                  color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+          > DESCARGAR IMAGEN
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- BST -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // ÁRBOL BST — INVENTARIO DE EQUIPOS
+    </div>
+
+    <!-- Leyenda -->
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#f5e642;">■</span> RAÍZ &nbsp;&nbsp;
+        <span style="color:#00ffe7;">■</span> NODO INTERNO &nbsp;&nbsp;
+        <span style="color:#ff2d78;">■</span> NODO HOJA &nbsp;&nbsp;
+        <span style="color:#ff2d78;">IZQ</span> HIJO IZQUIERDO &nbsp;&nbsp;
+        <span style="color:#00ffe7;">DER</span> HIJO DERECHO
+    </div>
+
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteBST()">GENERAR REPORTE BST</button>
+    </div>
+
+    <div class="msg" id="rpt-bst-msg"></div>
+
+    <div id="rpt-bst-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-bst-img" style="max-width:100%;border:1px solid var(--border);
+             border-radius:2px;" alt="Árbol BST">
+        <div style="margin-top:10px;">
+            <a id="rpt-bst-dl" download="arbol_bst.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                      color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
+</div>
+<!-- ÁRBOL B -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // ÁRBOL B ORDEN 4 — INVENTARIO DE SUMINISTROS
+    </div>
+
+    <!-- Leyenda -->
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#f5e642;">■</span> NODO LLENO (3/3 claves) &nbsp;&nbsp;
+        <span style="color:#00ff88;">■</span> NODO CON ESPACIO DISPONIBLE
+    </div>
+
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteArbolB()">
+            GENERAR REPORTE ÁRBOL B
+        </button>
+    </div>
+
+    <div class="msg" id="rpt-arbolb-msg"></div>
+
+    <div id="rpt-arbolb-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-arbolb-img"
+             style="max-width:100%;border:1px solid var(--border);border-radius:2px;"
+             alt="Árbol B">
+        <div style="margin-top:10px;">
+            <a id="rpt-arbolb-dl" download="arbol_b.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                      color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
 
 </div><!-- /main -->
 
@@ -1828,6 +1935,87 @@ async function cargarMatriz() {
 
     } catch(e) {
         console.error(e);
+    }
+}
+
+
+//=======================================================================================================
+//=======================================PARA GENERAR EL REPORTE DEL AVL=====================
+async function generarReporteAVL() {
+    mostrarMsg('rpt-avl-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-avl-wrap').style.display = 'none';
+
+    try {
+        const res  = await fetch('/reporte/avl');
+        const data = await res.json();
+
+        if (data.ok) {
+            const img = document.getElementById('rpt-avl-img');
+            const dl  = document.getElementById('rpt-avl-dl');
+            img.src   = data.imagen;
+            dl.href   = data.imagen;
+            document.getElementById('rpt-avl-wrap').style.display = 'block';
+            ocultarMsg('rpt-avl-msg');
+            toast('> REPORTE AVL GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-avl-msg', 'error', '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-avl-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+//=======================================================================================================
+//=======================================PARA GENERAR EL REPORTE DEL BST=====================
+
+//Es exactamente la misma lógica que el AVL en esta parte del javaScript  
+async function generarReporteBST() {
+    mostrarMsg('rpt-bst-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-bst-wrap').style.display = 'none';
+
+    try {
+        const res  = await fetch('/reporte/bst');
+        const data = await res.json();
+
+        if (data.ok) {
+            const img = document.getElementById('rpt-bst-img');
+            const dl  = document.getElementById('rpt-bst-dl');
+            img.src  = data.imagen;
+            dl.href  = data.imagen;
+            document.getElementById('rpt-bst-wrap').style.display = 'block';
+            ocultarMsg('rpt-bst-msg');
+            toast('> REPORTE BST GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-bst-msg', 'error', '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-bst-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+//=======================================================================================================
+//=======================================PARA GENERAR EL REPORTE DEL B ( de orden 4)=====================
+
+async function generarReporteArbolB() {
+    mostrarMsg('rpt-arbolb-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-arbolb-wrap').style.display = 'none';
+
+    try {
+        const res  = await fetch('/reporte/arbolb');
+        const data = await res.json();
+
+        if (data.ok) {
+            const img = document.getElementById('rpt-arbolb-img');
+            const dl  = document.getElementById('rpt-arbolb-dl');
+            img.src  = data.imagen;
+            dl.href  = data.imagen;
+            document.getElementById('rpt-arbolb-wrap').style.display = 'block';
+            ocultarMsg('rpt-arbolb-msg');
+            toast('> REPORTE ÁRBOL B GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-arbolb-msg', 'error',
+                '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-arbolb-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
     }
 }
 

@@ -1,0 +1,11 @@
+digraph BST {
+    rankdir=TB;
+    bgcolor="#040d14";
+    node [shape=record, fontname="Courier", fontsize=11,
+          style=filled, fillcolor="#071520", fontcolor="#00ffe7",
+          color="#00ffe7", margin="0.3"];
+    edge [color="#00ffe7", fontcolor="#00ffe7", fontname="Courier", fontsize=9];
+    "EQU001" [label="{EQU001 | Tensiómetro Digital | MediSupplyGT | cant: 25}", style=filled, fillcolor="#1a1200", color="#f5e642", penwidth=2];
+    "EQU002" [label="{EQU002 | Oxímetro de Pulso | BuenaVidaGT | cant: 40}", style=filled, fillcolor="#0d0714", color="#ff2d78"];
+    "EQU001" -> "EQU002" [label="DER", color="#00ffe7", fontcolor="#00ffe7"];
+}

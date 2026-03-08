@@ -712,5 +712,314 @@ put '/perfil' => sub ($c) {
     $c->render(json => { ok=>1, mensaje=>'Perfil actualizado exitosamente' });
 };
 
+#=========================================REPORTE DEL ARBOL AVL==================================
+#================================================================================================
+get '/reporte/avl' => sub ($c) {
+    # Verificar que graphviz esté instalado
+   
+    my $raiz = $arbolAVL->raiz;
+    unless (defined $raiz) {
+        return $c->render(json => { ok=>0, mensaje=>'El árbol AVL está vacío' });
+    }
+
+    # Generar contenido .dot
+    my @lineas;
+    push @lineas, 'digraph AVL {';
+    push @lineas, '    rankdir=TB;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [shape=record, fontname="Courier", fontsize=11,';
+    push @lineas, '          style=filled, fillcolor="#071520", fontcolor="#00ffe7",';
+    push @lineas, '          color="#00ffe7", margin="0.2"];';
+    push @lineas, '    edge [color="#00ffe7", fontcolor="#00ffe7", fontname="Courier", fontsize=9];';
+
+    # Recorrer árbol recursivamente
+    _dot_nodo_avl($raiz, \@lineas, undef, '');
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+
+    # Escribir archivo .dot temporal
+    my $dot_file = 'reportes/avl.dot';
+    my $png_file = 'reportes/avl.png';
+
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    # Generar PNG con graphviz
+    system("dot -Tpng $dot_file -o $png_file");
+
+
+    #========================================================================
+    #===================BLOQUE PARA EVITAR ERRORES DE GENERACIÓN DEL ARCHIVO
+    my $dot_exe = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $ret    = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+
+    if ($ret != 0 || !-f $png_file) {
+    return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    unless (-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    # Leer PNG y devolver como base64
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+# Función auxiliar recursiva — genera líneas .dot para cada nodo
+sub _dot_nodo_avl {
+    my ($nodo, $lineas, $padre, $lado) = @_;
+    return unless defined $nodo;
+
+    my $id    = $nodo->{clave};
+    my $nom   = $nodo->{valor}{nombre} // '?';
+    my $tipo  = $nodo->{valor}{tipo}   // '?';
+    my $depto = $nodo->{valor}{depto}  // '?';
+    my $alt   = $nodo->{altura}        // 1;
+    my $es_hoja = !defined($nodo->{izq}) && !defined($nodo->{der});
+    my $es_raiz = !defined($padre);
+
+    # Escapar caracteres especiales para .dot
+    $nom   =~ s/"/\\"/g;
+    $depto =~ s/"/\\"/g;
+
+    # Estilo según tipo de nodo
+    my $estilo;
+    if ($es_raiz) {
+        # Raíz — borde dorado
+        $estilo = 'style=filled, fillcolor="#1a1200", color="#f5e642", penwidth=2';
+    } elsif ($es_hoja) {
+        # Hoja — borde rosa
+        $estilo = 'style=filled, fillcolor="#071520", color="#ff2d78"';
+    } else {
+        # Normal — borde cian
+        $estilo = 'style=filled, fillcolor="#071520", color="#00ffe7"';
+    }
+
+    # Definir nodo
+    push @$lineas,
+        "    \"$id\" [label=\"{$id | $nom | $tipo | $depto | h=$alt}\", $estilo];";
+
+    # Arista desde padre
+    if (defined $padre) {
+        my $color = $lado eq 'izq' ? '"#ff2d78"' : '"#00ffe7"';
+        my $label = $lado eq 'izq' ? 'L'         : 'R';
+        push @$lineas, "    \"$padre\" -> \"$id\" [label=\"$label\", color=$color];";
+    }
+
+    # Recursión
+    _dot_nodo_avl($nodo->{izq}, $lineas, $id, 'izq');
+    _dot_nodo_avl($nodo->{der}, $lineas, $id, 'der');
+}
+
+
+#=========================================REPORTE DEL ARBOL BST==================================
+#================================================================================================
+
+#posee la misma lógica que el recorrido que hicimos al árbol AVL, solo que este no anda balanceado
+get '/reporte/bst' => sub ($c) {
+    my $raiz = $arbolBST->raiz;
+    unless (defined $raiz) {
+        return $c->render(json => { ok=>0, mensaje=>'El árbol BST está vacío' });
+    }
+
+    my @lineas;
+    push @lineas, 'digraph BST {';
+    push @lineas, '    rankdir=TB;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [shape=record, fontname="Courier", fontsize=11,';
+    push @lineas, '          style=filled, fillcolor="#071520", fontcolor="#00ffe7",';
+    push @lineas, '          color="#00ffe7", margin="0.3"];';
+    push @lineas, '    edge [color="#00ffe7", fontcolor="#00ffe7", fontname="Courier", fontsize=9];';
+
+    _dot_nodo_bst($raiz, \@lineas, undef, '');
+
+    push @lineas, '}';
+
+    my $dot_txt  = join("\n", @lineas);
+    my $dot_file = 'reportes/bst.dot';
+    my $png_file = 'reportes/bst.png';
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+
+    #==================================PROCESO PARA QUE EL ARCHIVO NO MUERA====================
+    #=========================================================================================
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+sub _dot_nodo_bst {
+    my ($nodo, $lineas, $padre, $lado) = @_;
+    return unless defined $nodo;
+
+    my $id    = $nodo->{clave};
+    my $eq    = $nodo->{valor};
+    my $nom   = $eq->nombreEquipo        // '?';
+    my $fab   = $eq->fabricanteEquipo    // '?';
+    my $cant  = $eq->cantidadEquipo      // 0;
+    my $nivel = $eq->nivelMinimoReorden  // 0;
+    my $alerta = $cant < $nivel ? ' [!]' : '';
+
+    my $es_hoja = !defined($nodo->{izq}) && !defined($nodo->{der});
+    my $es_raiz = !defined($padre);
+
+    $nom =~ s/"/\\"/g;
+    $fab =~ s/"/\\"/g;
+
+    my $estilo;
+    if ($es_raiz) {
+        $estilo = 'style=filled, fillcolor="#1a1200", color="#f5e642", penwidth=2';
+    } elsif ($es_hoja) {
+        $estilo = 'style=filled, fillcolor="#0d0714", color="#ff2d78"';
+    } else {
+        $estilo = 'style=filled, fillcolor="#071520", color="#00ffe7"';
+    }
+
+    push @$lineas,
+        "    \"$id\" [label=\"{$id | $nom | $fab | cant: $cant$alerta}\", $estilo];";
+
+    if (defined $padre) {
+        my $color = $lado eq 'izq' ? '"#ff2d78"' : '"#00ffe7"';
+        my $label = $lado eq 'izq' ? 'IZQ' : 'DER';
+        push @$lineas,
+            "    \"$padre\" -> \"$id\" [label=\"$label\", color=$color, fontcolor=$color];";
+    }
+
+    _dot_nodo_bst($nodo->{izq}, $lineas, $id, 'izq');
+    _dot_nodo_bst($nodo->{der}, $lineas, $id, 'der');
+}
+
+#===================================================REPORTE ÁRBOL B ===================================================
+get '/reporte/arbolb' => sub ($c) {
+    
+
+    my $raiz = $arbolB->raiz;
+    unless (defined $raiz && $raiz->num_claves > 0) {
+        return $c->render(json => { ok=>0, mensaje=>'El Árbol B está vacío' });
+    }
+
+    my @lineas;
+    push @lineas, 'digraph ArbolB {';
+    push @lineas, '    rankdir=TB;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [shape=record, fontname="Courier", fontsize=10,';
+    push @lineas, '          style=filled, fontcolor="#00ffe7", margin="0.3"];';
+    push @lineas, '    edge [color="#00ffe7", fontname="Courier", fontsize=9];';
+
+    my $contador = 0;
+    _dot_nodo_arbolb($raiz, \@lineas, \$contador, undef, undef);
+
+    push @lineas, '}';
+
+    my $dot_txt  = join("\n", @lineas);
+    my $dot_file = 'reportes/b.dot';
+    my $png_file = 'reportes/b.png';
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+
+    open(my $fh, '>', $dot_file) or die "No se pudo crear: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    system("dot -Tpng $dot_file -o $png_file");
+    #========================================================================
+    #===================BLOQUE PARA EVITAR ERRORES DE GENERACIÓN DEL ARCHIVO
+    my $dot_exe = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $ret    = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+
+    if ($ret != 0 || !-f $png_file) {
+    return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    unless (-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+sub _dot_nodo_arbolb {
+    my ($nodo, $lineas, $cont, $padre_id, $puerto) = @_;
+    return unless defined $nodo;
+
+    my $id      = 'n' . $$cont++;
+    my $num     = $nodo->num_claves;
+    my $max     = 3;  # orden 4 - 1
+    my $lleno   = $num == $max;
+
+    # Color según capacidad
+    my ($fill, $border);
+    if ($lleno) {
+        $fill   = '"#1a1500"';   # amarillo oscuro — lleno
+        $border = '"#f5e642"';
+    } else {
+        $fill   = '"#001a0d"';   # verde oscuro — con espacio
+        $border = '"#00ff88"';
+    }
+
+    # Construir label con puertos
+    # Formato: <h0> | clave0 | <h1> | clave1 | <h2> | clave2 | <h3>
+    my $label = '';
+    for my $i (0 .. $num - 1) {
+        my $clave = $nodo->{claves}[$i]{clave};
+        $clave =~ s/"/\\"/g;
+        $label .= "<h$i> |$clave| ";
+    }
+    $label .= "<h$num>";
+
+    # Indicador de capacidad
+    my $cap = "$num/$max claves";
+    $label = "{$label | $cap}";
+
+    push @$lineas,
+        "    $id [label=\"$label\", fillcolor=$fill, color=$border, penwidth=2];";
+
+    # Arista desde padre
+    if (defined $padre_id) {
+        push @$lineas,
+            "    ${padre_id}:${puerto} -> ${id} [color=$border];";
+    }
+
+    # Recursión para cada hijo
+    unless ($nodo->{es_hoja}) {
+        for my $i (0 .. $num) {
+            _dot_nodo_arbolb(
+                $nodo->{hijos}[$i],
+                $lineas, $cont,
+                $id, "h$i"
+            );
+        }
+    }
+}
+
 app->start;
 

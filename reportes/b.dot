@@ -1,0 +1,8 @@
+digraph ArbolB {
+    rankdir=TB;
+    bgcolor="#040d14";
+    node [shape=record, fontname="Courier", fontsize=10,
+          style=filled, fontcolor="#00ffe7", margin="0.3"];
+    edge [color="#00ffe7", fontname="Courier", fontsize=9];
+    n0 [label="{<h0> |SUM001| <h1> |SUM002| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+}

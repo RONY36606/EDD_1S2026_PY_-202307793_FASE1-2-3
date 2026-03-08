@@ -672,7 +672,7 @@ function ocultarMsg(id) {
   if (el) { el.className = 'msg'; el.textContent = ''; }
 }
 
-function toast(msg, tipo = 'ok', dur = 3000) {
+function toast(msg, tipo = 'ok', dur = 5000) {
   let t = document.getElementById('toast');
   if (t) t.remove();
   t = document.createElement('div');
