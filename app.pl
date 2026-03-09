@@ -1021,5 +1021,303 @@ sub _dot_nodo_arbolb {
     }
 }
 
+
+#===================================================REPORTE DE LA MATRIZ DISPERSA ===================================================
+get '/reporte/matriz' => sub ($c) {
+    my $data     = $matrizDispersaMed->obtenerMatriz();
+    my @filas    = @{ $data->{filas}   };
+    my @columnas = @{ $data->{columnas} };
+    my @celdas   = @{ $data->{celdas}  };
+
+    unless (@filas && @columnas) {
+        return $c->render(json => { ok=>0, mensaje=>'La matriz está vacía' });
+    }
+
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $dot_file = 'reportes/matriz.dot';
+    my $png_file = 'reportes/matriz.png';
+
+    # Construir mapa rápido celda[fila][columna] = cantidad
+    my %mapa;
+    for my $celda (@celdas) {
+        $mapa{ $celda->{fila} }{ $celda->{columna} } += $celda->{cantidad};
+    }
+
+    my @lineas;
+    push @lineas, 'digraph Matriz {';
+    push @lineas, '    rankdir=LR;';   # izquierda a derecha
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [fontname="Courier", fontsize=11, style=filled, margin="0.2"];';
+    push @lineas, '    edge [fontname="Courier", fontsize=9];';
+    push @lineas, '    splines=false;';  # líneas rectas
+
+    # ── Cabeceras de columna (fabricantes) — arriba, color amarillo
+    push @lineas, '    // Fabricantes';
+    push @lineas, '    { rank=min;';
+    for my $col (@columnas) {
+        my $id  = _id_seguro($col);
+        my $esc = $col; $esc =~ s/"/\\"/g;
+        push @lineas,
+            "        fab_$id [label=\"$esc\", shape=rectangle,".
+            ' fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];';
+    }
+    push @lineas, '    }';
+
+    # ── Cabeceras de fila (proveedores) — izquierda, color cyan
+    push @lineas, '    // Proveedores';
+    for my $fila (@filas) {
+        my $id  = _id_seguro($fila);
+        my $esc = $fila; $esc =~ s/"/\\"/g;
+        push @lineas,
+            "    prov_$id [label=\"$esc\", shape=rectangle,".
+            ' fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];';
+    }
+
+    # ── Nodos de valor (celdas) — círculos, color verde
+    push @lineas, '    // Celdas';
+    for my $fila (@filas) {
+        for my $col (@columnas) {
+            next unless exists $mapa{$fila}{$col};
+            my $cant   = $mapa{$fila}{$col};
+            my $id_f   = _id_seguro($fila);
+            my $id_c   = _id_seguro($col);
+            push @lineas,
+                "    val_${id_f}_${id_c} [label=\"$cant\", shape=circle,".
+                ' fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];';
+        }
+    }
+
+    # ── Conexiones horizontales: proveedor → sus celdas
+    push @lineas, '    // Conexiones horizontales (proveedor -> cantidad)';
+    for my $fila (@filas) {
+        my $id_f = _id_seguro($fila);
+        for my $col (@columnas) {
+            next unless exists $mapa{$fila}{$col};
+            my $id_c = _id_seguro($col);
+            push @lineas,
+                "    prov_$id_f -> val_${id_f}_${id_c}".
+                ' [color="#00ffe7", style=solid];';
+        }
+    }
+
+    # ── Conexiones verticales: fabricante → sus celdas
+    push @lineas, '    // Conexiones verticales (fabricante -> cantidad)';
+    for my $col (@columnas) {
+        my $id_c = _id_seguro($col);
+        for my $fila (@filas) {
+            next unless exists $mapa{$fila}{$col};
+            my $id_f = _id_seguro($fila);
+            push @lineas,
+                "    fab_$id_c -> val_${id_f}_${id_c}".
+                ' [color="#f5e642", style=dashed];';
+        }
+    }
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+# Convierte un string a identificador seguro para .dot
+sub _id_seguro {
+    my $s = shift;
+    $s =~ s/[^a-zA-Z0-9]/_/g;
+    return $s;
+}
+
+
+# ================================================= REPORTE LISTA DOBLEMENTE ENLAZADA (Medicamentos) =================================================
+get '/reporte/medicamentos' => sub ($c) {
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $dot_file = 'reportes/medicamentos.dot';
+    my $png_file = 'reportes/medicamentos.png';
+
+    my @lineas;
+    push @lineas, 'digraph ListaMedicamentos {';
+    push @lineas, '    rankdir=LR;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [shape=box, fontname="Courier", fontsize=10,';
+    push @lineas, '          style=filled, fontcolor="#000000", margin="0.3"];';
+    push @lineas, '    edge [fontname="Courier", fontsize=9];';
+
+    my @nodos;  # guardar códigos para hacer las aristas después
+
+    $listaMedicamentos->iterar(sub {
+        my $nodo = shift;
+        my $med  = $nodo->value;
+
+        my $codigo = $med->codigoMedicina;
+        my $nombre = $med->nombreComercial    // '?';
+        my $vence  = $med->fechaVencimiento   // '?';
+        my $cant   = $med->cantidadStock      // 0;
+        my $nivel  = $med->nivelMinimoReorden // 0;
+
+        $nombre =~ s/"/\\"/g;
+
+        # Color según estado
+        my $color = '#00ff88';  # verde — ok
+        if ($cant < $nivel) {
+            $color = '#ff2d78';  # rosa — stock bajo
+        }
+
+        # Verificar vencimiento
+        eval {
+            use Time::Piece;
+            my $fv  = Time::Piece->strptime($vence, "%Y-%m-%d");
+            my $hoy = localtime;
+            if ($fv < $hoy) {
+                $color = '#f5e642';  # amarillo — vencido
+            } elsif ($fv <= $hoy + 86400*7) {
+                $color = '#f5e642';  # amarillo — próximo a vencer
+            }
+        };
+
+        push @lineas,
+            "    \"$codigo\" [label=\"$codigo\\n$nombre\\nStock: $cant\\nVence: $vence\",".
+            " fillcolor=\"$color\"];";
+
+        push @nodos, { nodo => $nodo, codigo => $codigo, med => $med };
+    });
+
+    # Aristas
+    for my $entry (@nodos) {
+        my $nodo   = $entry->{nodo};
+        my $codigo = $entry->{codigo};
+
+        # Siguiente — cian
+        if ($nodo->next) {
+            my $sig = $nodo->next->value->codigoMedicina;
+            push @lineas, "    \"$codigo\" -> \"$sig\" [color=\"#00ffe7\", label=\"sig\"];";
+        }
+        # Anterior — rosa
+        if ($nodo->prev) {
+            my $ant = $nodo->prev->value->codigoMedicina;
+            push @lineas, "    \"$codigo\" -> \"$ant\" [color=\"#ff2d78\", label=\"ant\", style=dashed];";
+        }
+    }
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+# ================================================= REPORTE LISTA CIRCULAR DOBLE (Proveedores) =================================================
+get '/reporte/proveedores' => sub ($c) {
+
+
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $dot_file = 'reportes/proveedores.dot';
+    my $png_file = 'reportes/proveedores.png';
+
+    my @lineas;
+    push @lineas, 'digraph ListaProveedores {';
+    push @lineas, '    rankdir=LR;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [shape=box, fontname="Courier", fontsize=10,';
+    push @lineas, '          style=filled, fontcolor="#000000", margin="0.3"];';
+    push @lineas, '    edge [fontname="Courier", fontsize=9];';
+
+    my @nodos;
+    my $orden = 0;
+    
+
+    $listaProveedores->recorrerAdelante(sub {
+        my $nodo = shift;
+        my $prov = $nodo->valor;
+        $orden++;
+
+        my $nit    = $prov->nit           // '?';
+        my $nombre = $prov->nombreEmpresa // '?';
+        my $tel    = $prov->telefono      // '?';
+        my $total  = $prov->totalEntregas // 0;
+
+        $nombre =~ s/"/\\"/g;
+
+        # Primer nodo en amarillo — cabeza de la lista
+        my $color = $orden == 1 ? '#f5e642' : '#00ffe7';
+
+        push @lineas,
+            "    \"$nit\" [label=\"$nit\\n$nombre\\nTel: $tel\\nEntregas: $total\",".
+            " fillcolor=\"$color\"];";
+
+        push @nodos, { nodo => $nodo, nit => $nit };
+    });
+
+    # Aristas
+    for my $entry (@nodos) {
+        my $nodo = $entry->{nodo};
+        my $nit  = $entry->{nit};
+
+        # Siguiente — cian
+        if ($nodo->siguiente) {
+            my $sig = $nodo->siguiente->valor->nit;
+            push @lineas, "    \"$nit\" -> \"$sig\" [color=\"#00ffe7\", label=\"sig\"];";
+        }
+        # Anterior — rosa
+        if ($nodo->anterior) {
+            my $ant = $nodo->anterior->valor->nit;
+            push @lineas, "    \"$nit\" -> \"$ant\" [color=\"#ff2d78\", label=\"ant\", style=dashed];";
+        }
+    }
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
 app->start;
 

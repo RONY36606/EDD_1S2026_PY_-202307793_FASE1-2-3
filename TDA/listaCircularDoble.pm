@@ -37,7 +37,7 @@ sub obtener_tail{
     my ($self) = @_;
     return undef unless $self->{head};
     my $cur = $self->{head};
-    while($cur->siguiente ne $self->{head}){
+    while($cur->siguiente != $self->{head}){
         $cur = $cur->siguiente;
     }
     return $cur;

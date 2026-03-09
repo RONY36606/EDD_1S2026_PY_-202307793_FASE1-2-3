@@ -1072,6 +1072,111 @@
         </div>
     </div>
 </div>
+<!-- MATRIZ DISPERSA -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // MATRIZ DISPERSA — PROVEEDORES × FABRICANTES
+    </div>
+
+    <!-- Leyenda -->
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#00ffe7;">■</span> PROVEEDOR (fila) &nbsp;&nbsp;
+        <span style="color:#f5e642;">■</span> FABRICANTE (columna) &nbsp;&nbsp;
+        <span style="color:#00ff88;">●</span> CANTIDAD TOTAL &nbsp;&nbsp;
+        <span style="color:#00ffe7;">—</span> RELACIÓN HORIZONTAL &nbsp;&nbsp;
+        <span style="color:#f5e642;">- -</span> RELACIÓN VERTICAL
+    </div>
+
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteMatriz()">
+            GENERAR REPORTE MATRIZ
+        </button>
+    </div>
+
+    <div class="msg" id="rpt-matriz-msg"></div>
+
+    <div id="rpt-matriz-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-matriz-img"
+             style="max-width:100%;border:1px solid var(--border);border-radius:2px;"
+             alt="Matriz Dispersa">
+        <div style="margin-top:10px;">
+            <a id="rpt-matriz-dl" download="matriz_dispersa.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                      color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- LISTA DOBLEMENTE ENLAZADA — MEDICAMENTOS -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // LISTA DOBLE — INVENTARIO DE MEDICAMENTOS
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#00ff88;">■</span> STOCK OK &nbsp;&nbsp;
+        <span style="color:#ff2d78;">■</span> STOCK BAJO &nbsp;&nbsp;
+        <span style="color:#f5e642;">■</span> VENCIDO / PRÓXIMO A VENCER &nbsp;&nbsp;
+        <span style="color:#00ffe7;">→</span> SIGUIENTE &nbsp;&nbsp;
+        <span style="color:#ff2d78;">⇢</span> ANTERIOR
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteMedicamentos()">
+            GENERAR REPORTE MEDICAMENTOS
+        </button>
+    </div>
+    <div class="msg" id="rpt-med-msg"></div>
+    <div id="rpt-med-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-med-img"
+             style="max-width:100%;border:1px solid var(--border);border-radius:2px;"
+             alt="Lista Medicamentos">
+        <div style="margin-top:10px;">
+            <a id="rpt-med-dl" download="lista_medicamentos.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                      color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- LISTA CIRCULAR DOBLE — PROVEEDORES -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // LISTA CIRCULAR DOBLE — PROVEEDORES
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#f5e642;">■</span> CABEZA DE LISTA &nbsp;&nbsp;
+        <span style="color:#00ffe7;">■</span> PROVEEDOR &nbsp;&nbsp;
+        <span style="color:#00ffe7;">→</span> SIGUIENTE &nbsp;&nbsp;
+        <span style="color:#ff2d78;">⇢</span> ANTERIOR
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteProveedores()">
+            GENERAR REPORTE PROVEEDORES
+        </button>
+    </div>
+    <div class="msg" id="rpt-prov-msg"></div>
+    <div id="rpt-prov-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-prov-img"
+             style="max-width:100%;border:1px solid var(--border);border-radius:2px;"
+             alt="Lista Proveedores">
+        <div style="margin-top:10px;">
+            <a id="rpt-prov-dl" download="lista_proveedores.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                      color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
 
 </div><!-- /main -->
 
@@ -2016,6 +2121,77 @@ async function generarReporteArbolB() {
         }
     } catch(e) {
         mostrarMsg('rpt-arbolb-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+//=======================================================================================================
+//=======================================PARA GENERAR EL REPORTE DE LA MATRIZ DISPERSA=====================
+async function generarReporteMatriz() {
+    mostrarMsg('rpt-matriz-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-matriz-wrap').style.display = 'none';
+
+    try {
+        const res  = await fetch('/reporte/matriz');
+        const data = await res.json();
+
+        if (data.ok) {
+            const img = document.getElementById('rpt-matriz-img');
+            const dl  = document.getElementById('rpt-matriz-dl');
+            img.src  = data.imagen;
+            dl.href  = data.imagen;
+            document.getElementById('rpt-matriz-wrap').style.display = 'block';
+            ocultarMsg('rpt-matriz-msg');
+            toast('> REPORTE MATRIZ GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-matriz-msg', 'error',
+                '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-matriz-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+//=======================================================================================================
+//=======================================PARA GENERAR EL REPORTE DE LISTA DOBLE=====================
+async function generarReporteMedicamentos() {
+    mostrarMsg('rpt-med-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-med-wrap').style.display = 'none';
+
+    try {
+        const res  = await fetch('/reporte/medicamentos');
+        const data = await res.json();
+        if (data.ok) {
+            document.getElementById('rpt-med-img').src  = data.imagen;
+            document.getElementById('rpt-med-dl').href  = data.imagen;
+            document.getElementById('rpt-med-wrap').style.display = 'block';
+            ocultarMsg('rpt-med-msg');
+            toast('> REPORTE MEDICAMENTOS GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-med-msg', 'error', '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-med-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+//=======================================================================================================
+//=======================================PARA GENERAR EL REPORTE DE LA LISTA CIRCULAR DOBLEMENTE=====================
+async function generarReporteProveedores() {
+    mostrarMsg('rpt-prov-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-prov-wrap').style.display = 'none';
+
+    try {
+        const res  = await fetch('/reporte/proveedores');
+        const data = await res.json();
+        if (data.ok) {
+            document.getElementById('rpt-prov-img').src  = data.imagen;
+            document.getElementById('rpt-prov-dl').href  = data.imagen;
+            document.getElementById('rpt-prov-wrap').style.display = 'block';
+            ocultarMsg('rpt-prov-msg');
+            toast('> REPORTE PROVEEDORES GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-prov-msg', 'error', '> ERROR :: ' + data.mensaje.toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-prov-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
     }
 }
 

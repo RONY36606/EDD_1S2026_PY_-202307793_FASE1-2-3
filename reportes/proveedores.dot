@@ -1,0 +1,10 @@
+digraph ListaProveedores {
+    rankdir=LR;
+    bgcolor="#040d14";
+    node [shape=box, fontname="Courier", fontsize=10,
+          style=filled, fontcolor="#000000", margin="0.3"];
+    edge [fontname="Courier", fontsize=9];
+    "98765432-1" [label="98765432-1\nJuanito proveedor\nTel: 2245 6789\nEntregas: 2", fillcolor="#f5e642"];
+    "98765432-1" -> "98765432-1" [color="#00ffe7", label="sig"];
+    "98765432-1" -> "98765432-1" [color="#ff2d78", label="ant", style=dashed];
+}
