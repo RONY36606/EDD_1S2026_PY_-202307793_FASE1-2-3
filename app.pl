@@ -110,37 +110,9 @@ post '/registro' => sub ($c) {
 
 
 #=============================================CONUSLTAR USUARIOS=======================================0
-get '/usuarios' => sub ($c) {
-    my @lista;
-    for my $entry (@{ $arbolAVL->inorden() }) {
-        my $u = $entry->{valor};
-        push @lista, {
-            numero_colegio => $entry->{clave},
-            nombre         => $u->{nombre},
-            tipo           => $u->{tipo},
-            departamento   => $u->{depto},
-            especialidad   => $u->{espec} // '',
-        };
-    }
-    $c->render(json => { ok=>1, usuarios=>\@lista });
-};
+#Eliminada por errores de duplicados con otra ruta
 #=============================================CONUSLTAR EQUIPOS=======================================0
-get '/equipos' => sub ($c) {
-    my @lista;
-    for my $entry (@{ $arbolBST->inorden() }) {
-        my $eq = $entry->{valor};
-        push @lista, {
-            codigo    => $eq->codigoEquipo,
-            nombre    => $eq->nombreEquipo,
-            fabricante=> $eq->fabricanteEquipo,
-            precio    => $eq->precioEquipo,
-            cantidad  => $eq->cantidadEquipo,
-            fecha     => $eq->fechaIngresoEquipo,
-            minimo    => $eq->nivelMinimoReorden,
-        };
-    }
-    $c->render(json => { ok=>1, equipos=>\@lista });
-};
+#Eliminada por errores de duplicados con otra ruta
 #=============================================CONUSLTAR SUMINISTROS=======================================0
 get '/suministros' => sub ($c) {
     my @lista;
@@ -629,6 +601,28 @@ post '/carga-usuarios' => sub ($c) {
 
 #============================================ESTO ES PARA LA PARTE DEL MANEJO DEL PERSONAL=====================================
 #============================================================================================================================
+# tomar a los usuarios en el recorrido deseado
+get '/usuarios' => sub ($c) {
+    my $recorrido = $c->param('recorrido') // 'inorden';
+
+    print "$recorrido";
+
+    my $lista;
+
+    if    ($recorrido eq 'preorden')  { $lista = $arbolAVL->preorden;  }
+    elsif ($recorrido eq 'postorden') { $lista = $arbolAVL->postorden; }
+    else                              { $lista = $arbolAVL->inorden;   }
+
+    my @resultado = map {{
+        numero_colegio => $_->{clave},
+        nombre         => $_->{valor}{nombre},
+        tipo           => $_->{valor}{tipo},
+        departamento   => $_->{valor}{depto},
+        especialidad   => $_->{valor}{espec} // '',
+    }} @$lista;
+
+    $c->render(json => { ok=>1, usuarios=>\@resultado });
+};
 # buscar solamente a un usuario de entre todo el árbol
 get '/usuarios/:colegio' => sub ($c) {
     my $colegio = $c->param('colegio');
@@ -648,24 +642,17 @@ get '/usuarios/:colegio' => sub ($c) {
     });
 };
 
-# tomar a los usuarios en el recorrido deseado
-get '/usuarios' => sub ($c) {
-    my $recorrido = $c->param('recorrido') // 'inorden';
-    my $lista;
 
-    if    ($recorrido eq 'preorden')  { $lista = $arbolAVL->preorden;  }
-    elsif ($recorrido eq 'postorden') { $lista = $arbolAVL->postorden; }
-    else                              { $lista = $arbolAVL->inorden;   }
 
-    my @resultado = map {{
-        numero_colegio => $_->{clave},
-        nombre         => $_->{valor}{nombre},
-        tipo           => $_->{valor}{tipo},
-        departamento   => $_->{valor}{depto},
-        especialidad   => $_->{valor}{espec} // '',
-    }} @$lista;
-
-    $c->render(json => { ok=>1, usuarios=>\@resultado });
+get '/debug/avl' => sub ($c) {
+    my $raiz = $arbolAVL->raiz;
+    return $c->render(json => { raiz => 'vacio' }) unless defined $raiz;
+    $c->render(json => {
+        raiz    => $raiz->{clave},
+        altura  => $raiz->{altura},
+        izq     => defined $raiz->{izq} ? $raiz->{izq}{clave} : 'null',
+        der     => defined $raiz->{der} ? $raiz->{der}{clave} : 'null',
+    });
 };
 
 # eliminar al usuario que está en el campo de bsucar

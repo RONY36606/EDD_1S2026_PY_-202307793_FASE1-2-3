@@ -6,31 +6,53 @@ digraph Matriz {
     splines=false;
     // Fabricantes
     { rank=min;
-        fab_BuenaVidaGT [label="BuenaVidaGT", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
+        fab_ACME_S_A_ [label="ACME S.A.", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
+        fab_CardioTech [label="CardioTech", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
         fab_DeTodo [label="DeTodo", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
-        fab_GenericLab [label="GenericLab", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
-        fab_LabFarma [label="LabFarma", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
-        fab_MediSupplyGT [label="MediSupplyGT", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
+        fab_MediFlow [label="MediFlow", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
+        fab_SafeMed [label="SafeMed", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
+        fab_UltraMed [label="UltraMed", shape=rectangle, fillcolor="#1a1500", color="#f5e642", fontcolor="#f5e642"];
     }
     // Proveedores
-    prov_Benito_proveedor [label="Benito proveedor", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
-    prov_Juanito_proveedor [label="Juanito proveedor", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
+    prov_Camerun_Sal [label="Camerun Sal", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
+    prov_Juanito_Maravilla [label="Juanito Maravilla", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
+    prov_Monito_Dinamita [label="Monito Dinamita", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
+    prov_Pedrito_Alcachofa [label="Pedrito Alcachofa", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
+    prov_Tercio_Casi [label="Tercio Casi", shape=rectangle, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];
     // Celdas
-    val_Benito_proveedor_BuenaVidaGT [label="40", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
-    val_Benito_proveedor_DeTodo [label="20000", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
-    val_Benito_proveedor_GenericLab [label="5500", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
-    val_Juanito_proveedor_LabFarma [label="5000", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
-    val_Juanito_proveedor_MediSupplyGT [label="50025", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Camerun_Sal_DeTodo [label="9", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Camerun_Sal_MediFlow [label="5000", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Camerun_Sal_UltraMed [label="375", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Juanito_Maravilla_ACME_S_A_ [label="9458", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Monito_Dinamita_MediFlow [label="510", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Monito_Dinamita_SafeMed [label="690", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Pedrito_Alcachofa_DeTodo [label="2520", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Pedrito_Alcachofa_MediFlow [label="128", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Tercio_Casi_ACME_S_A_ [label="4000", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Tercio_Casi_CardioTech [label="504", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
+    val_Tercio_Casi_DeTodo [label="2515", shape=circle, fillcolor="#001a0d", color="#00ff88", fontcolor="#00ff88", width=0.8];
     // Conexiones horizontales (proveedor -> cantidad)
-    prov_Benito_proveedor -> val_Benito_proveedor_BuenaVidaGT [color="#00ffe7", style=solid];
-    prov_Benito_proveedor -> val_Benito_proveedor_DeTodo [color="#00ffe7", style=solid];
-    prov_Benito_proveedor -> val_Benito_proveedor_GenericLab [color="#00ffe7", style=solid];
-    prov_Juanito_proveedor -> val_Juanito_proveedor_LabFarma [color="#00ffe7", style=solid];
-    prov_Juanito_proveedor -> val_Juanito_proveedor_MediSupplyGT [color="#00ffe7", style=solid];
+    prov_Camerun_Sal -> val_Camerun_Sal_DeTodo [color="#00ffe7", style=solid];
+    prov_Camerun_Sal -> val_Camerun_Sal_MediFlow [color="#00ffe7", style=solid];
+    prov_Camerun_Sal -> val_Camerun_Sal_UltraMed [color="#00ffe7", style=solid];
+    prov_Juanito_Maravilla -> val_Juanito_Maravilla_ACME_S_A_ [color="#00ffe7", style=solid];
+    prov_Monito_Dinamita -> val_Monito_Dinamita_MediFlow [color="#00ffe7", style=solid];
+    prov_Monito_Dinamita -> val_Monito_Dinamita_SafeMed [color="#00ffe7", style=solid];
+    prov_Pedrito_Alcachofa -> val_Pedrito_Alcachofa_DeTodo [color="#00ffe7", style=solid];
+    prov_Pedrito_Alcachofa -> val_Pedrito_Alcachofa_MediFlow [color="#00ffe7", style=solid];
+    prov_Tercio_Casi -> val_Tercio_Casi_ACME_S_A_ [color="#00ffe7", style=solid];
+    prov_Tercio_Casi -> val_Tercio_Casi_CardioTech [color="#00ffe7", style=solid];
+    prov_Tercio_Casi -> val_Tercio_Casi_DeTodo [color="#00ffe7", style=solid];
     // Conexiones verticales (fabricante -> cantidad)
-    fab_BuenaVidaGT -> val_Benito_proveedor_BuenaVidaGT [color="#f5e642", style=dashed];
-    fab_DeTodo -> val_Benito_proveedor_DeTodo [color="#f5e642", style=dashed];
-    fab_GenericLab -> val_Benito_proveedor_GenericLab [color="#f5e642", style=dashed];
-    fab_LabFarma -> val_Juanito_proveedor_LabFarma [color="#f5e642", style=dashed];
-    fab_MediSupplyGT -> val_Juanito_proveedor_MediSupplyGT [color="#f5e642", style=dashed];
+    fab_ACME_S_A_ -> val_Juanito_Maravilla_ACME_S_A_ [color="#f5e642", style=dashed];
+    fab_ACME_S_A_ -> val_Tercio_Casi_ACME_S_A_ [color="#f5e642", style=dashed];
+    fab_CardioTech -> val_Tercio_Casi_CardioTech [color="#f5e642", style=dashed];
+    fab_DeTodo -> val_Camerun_Sal_DeTodo [color="#f5e642", style=dashed];
+    fab_DeTodo -> val_Pedrito_Alcachofa_DeTodo [color="#f5e642", style=dashed];
+    fab_DeTodo -> val_Tercio_Casi_DeTodo [color="#f5e642", style=dashed];
+    fab_MediFlow -> val_Camerun_Sal_MediFlow [color="#f5e642", style=dashed];
+    fab_MediFlow -> val_Monito_Dinamita_MediFlow [color="#f5e642", style=dashed];
+    fab_MediFlow -> val_Pedrito_Alcachofa_MediFlow [color="#f5e642", style=dashed];
+    fab_SafeMed -> val_Monito_Dinamita_SafeMed [color="#f5e642", style=dashed];
+    fab_UltraMed -> val_Camerun_Sal_UltraMed [color="#f5e642", style=dashed];
 }

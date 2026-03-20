@@ -4,5 +4,21 @@ digraph ArbolB {
     node [shape=record, fontname="Courier", fontsize=10,
           style=filled, fontcolor="#00ffe7", margin="0.3"];
     edge [color="#00ffe7", fontname="Courier", fontsize=9];
-    n0 [label="{<h0> |SUM001| <h1> |SUM002| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n0 [label="{<h0> |SUM017| <h1> | 1/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n1 [label="{<h0> |SUM004| <h1> |SUM012| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n0:h0 -> n1 [color="#00ff88"];
+    n2 [label="{<h0> |SUM001| <h1> |SUM002| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n1:h0 -> n2 [color="#00ff88"];
+    n3 [label="{<h0> |SUM008| <h1> |SUM011| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n1:h1 -> n3 [color="#00ff88"];
+    n4 [label="{<h0> |SUM015| <h1> | 1/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n1:h2 -> n4 [color="#00ff88"];
+    n5 [label="{<h0> |SUM032| <h1> |SUM084| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n0:h1 -> n5 [color="#00ff88"];
+    n6 [label="{<h0> |SUM024| <h1> |SUM026| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n5:h0 -> n6 [color="#00ff88"];
+    n7 [label="{<h0> |SUM033| <h1> |SUM041| <h2> | 2/3 claves}", fillcolor="#001a0d", color="#00ff88", penwidth=2];
+    n5:h1 -> n7 [color="#00ff88"];
+    n8 [label="{<h0> |SUM091| <h1> |SUM094| <h2> |SUM100| <h3> | 3/3 claves}", fillcolor="#1a1500", color="#f5e642", penwidth=2];
+    n5:h2 -> n8 [color="#f5e642"];
 }

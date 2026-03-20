@@ -4,7 +4,19 @@ digraph ListaProveedores {
     node [shape=box, fontname="Courier", fontsize=10,
           style=filled, fontcolor="#000000", margin="0.3"];
     edge [fontname="Courier", fontsize=9];
-    "98765432-1" [label="98765432-1\nJuanito proveedor\nTel: 2245 6789\nEntregas: 2", fillcolor="#f5e642"];
-    "98765432-1" -> "98765432-1" [color="#00ffe7", label="sig"];
-    "98765432-1" -> "98765432-1" [color="#ff2d78", label="ant", style=dashed];
+    "10000001-1" [label="10000001-1\nJuanito Maravilla\nTel: 2233 4455\nEntregas: 1", fillcolor="#f5e642"];
+    "10000002-2" [label="10000002-2\nPedrito Alcachofa\nTel: 2244 5566\nEntregas: 1", fillcolor="#00ffe7"];
+    "10000003-3" [label="10000003-3\nTercio Casi\nTel: 2255 6677\nEntregas: 1", fillcolor="#00ffe7"];
+    "10000004-4" [label="10000004-4\nMonito Dinamita\nTel: 2266 7788\nEntregas: 1", fillcolor="#00ffe7"];
+    "10000005-5" [label="10000005-5\nCamerun Sal\nTel: 2277 8899\nEntregas: 1", fillcolor="#00ffe7"];
+    "10000001-1" -> "10000002-2" [color="#00ffe7", label="sig"];
+    "10000001-1" -> "10000005-5" [color="#ff2d78", label="ant", style=dashed];
+    "10000002-2" -> "10000003-3" [color="#00ffe7", label="sig"];
+    "10000002-2" -> "10000001-1" [color="#ff2d78", label="ant", style=dashed];
+    "10000003-3" -> "10000004-4" [color="#00ffe7", label="sig"];
+    "10000003-3" -> "10000002-2" [color="#ff2d78", label="ant", style=dashed];
+    "10000004-4" -> "10000005-5" [color="#00ffe7", label="sig"];
+    "10000004-4" -> "10000003-3" [color="#ff2d78", label="ant", style=dashed];
+    "10000005-5" -> "10000001-1" [color="#00ffe7", label="sig"];
+    "10000005-5" -> "10000004-4" [color="#ff2d78", label="ant", style=dashed];
 }

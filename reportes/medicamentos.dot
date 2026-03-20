@@ -4,8 +4,11 @@ digraph ListaMedicamentos {
     node [shape=box, fontname="Courier", fontsize=10,
           style=filled, fontcolor="#000000", margin="0.3"];
     edge [fontname="Courier", fontsize=9];
-    "MED001" [label="MED001\nTylenol\nStock: 5000\nVence: 2026-12-31", fillcolor="#00ff88"];
-    "MED009" [label="MED009\nVoltaren\nStock: 5500\nVence: 2026-08-25", fillcolor="#00ff88"];
-    "MED001" -> "MED009" [color="#00ffe7", label="sig"];
-    "MED009" -> "MED001" [color="#ff2d78", label="ant", style=dashed];
+    "MED001" [label="MED001\nIbuprofeno\nStock: 3000\nVence: 2027-12-31", fillcolor="#00ff88"];
+    "MED002" [label="MED002\nAmoxicilina\nStock: 4000\nVence: 2027-05-05", fillcolor="#00ff88"];
+    "MED003" [label="MED003\nParacetamol\nStock: 5000\nVence: 2027-12-12", fillcolor="#00ff88"];
+    "MED001" -> "MED002" [color="#00ffe7", label="sig"];
+    "MED002" -> "MED003" [color="#00ffe7", label="sig"];
+    "MED002" -> "MED001" [color="#ff2d78", label="ant", style=dashed];
+    "MED003" -> "MED002" [color="#ff2d78", label="ant", style=dashed];
 }
