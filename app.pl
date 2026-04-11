@@ -20,6 +20,10 @@ use arbolAvl;
 use arbolBST;
 use arbolB;
 use entregaProveedorAct;
+#IMPORTS DE LA FASE 3
+use grafoNoDirigido;
+use tablaHash;
+use lzw;
 
 my $listaMedicamentos = listaDoblementeEnlazada->new;
 my $listaProveedores  = listaCircularDoble->new;
@@ -30,6 +34,12 @@ my $matrizDispersaMed = matrizDispersa->new;
 my $arbolAVL = arbolAvl->new;
 my $arbolBST = arbolBST->new;
 my $arbolB   = arbolB->new;
+
+#Estructuras de la fase 3
+my $grafo = grafoNoDirigido->new();
+my $tablaHash = tablaHash->new();
+my $compresorLZW = lzw->new();
+my %chats_en_memoria; # Almacena chats activos por usuario: { 'COL-123' => { 'COL-456' => [...] } }
 
 
 
@@ -586,6 +596,22 @@ post '/carga-usuarios' => sub ($c) {
             espec  => $espec,
             pass   => $pass,
         });
+
+        #CREAMOS EL NODO DONDE IRÁ EL USUARIO EN EL GRAFO
+        $grafo->agregar_nodo(
+            numero_colegio => $col,
+            nombre => $nom,
+            tipo_usuario => $tipo,
+            departamento => $depto || 'SIN-DEP'
+        );
+
+        #CREAMOS TAMBIÉN EL USUARIO EN LA TABLA DE HASH
+        $grafo->agregar_nodo(
+            numero_colegio => $col,
+            nombre => $nom,
+            tipo_usuario => $tipo,
+            departamento => $depto || 'SIN-DEP'
+        );
         $insertados++;
     }
 
