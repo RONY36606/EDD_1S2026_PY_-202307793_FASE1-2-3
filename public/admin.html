@@ -434,6 +434,11 @@
   <button class="nav-item" onclick="scrollTo('sec-personal')">05 // PERSONAL (AVL)</button>
   <button class="nav-item" onclick="scrollTo('sec-equipos')">06 // EQUIPOS (BST)</button>
   <button class="nav-item" onclick="scrollTo('sec-suministros')">07 // SUMINISTROS (B)</button>
+  <button class="nav-item" onclick="scrollTo('sec-solicitudes')">08 // SOLICITUDES</button>
+  <button class="nav-item" onclick="scrollTo('sec-pendientes')">09 // PENDIENTES</button>
+  <button class="nav-item" onclick="scrollTo('sec-directorio')">10 // DIRECTORIO HASH</button>
+  <button class="nav-item" onclick="scrollTo('sec-relaciones')">11 // RELACIONES</button>
+  <button class="nav-item" onclick="scrollTo('sec-reportes')">12 // REPORTES</button>
 </div>
 
 <!-- MAIN -->
@@ -965,12 +970,178 @@
                 margin-top:10px;letter-spacing:1px;" id="sum-inorden-label"></div>
   </div>
   </div>
-  <!-- ═══════════════════════════════════════════ -->
-<!-- SEC 08 — REPORTES                         -->
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+<!-- SEC 08 — SOLICITUDES REABASTECIMIENTO        -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="seccion" id="sec-solicitudes">
+  <div class="sec-header">
+    <div class="sec-num">08</div>
+    <div class="sec-title">SOLICITUDES // REABASTECIMIENTO</div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="card">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // COLA DE SOLICITUDES PENDIENTES
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+      <button class="btn btn-cyan" onclick="cargarSolicitudes()">ACTUALIZAR COLA</button>
+    </div>
+    <div id="sol-contador" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);margin-bottom:12px;"></div>
+    <div class="msg" id="sol-msg"></div>
+    <div class="table-wrap" id="sol-wrap">
+      <table>
+        <thead><tr>
+          <th>DEPTO</th><th>TIPO</th><th>CÓDIGO</th><th>CANTIDAD</th>
+          <th>MOTIVO</th><th>SOLICITANTE</th><th>FECHA</th><th>ACCIONES</th>
+        </tr></thead>
+        <tbody id="tabla-solicitudes">
+          <tr><td colspan="8" style="text-align:center;color:var(--dim);padding:20px;">> PRESIONA ACTUALIZAR PARA CARGAR</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-cyan" onclick="aprobarSolicitud()">✓ APROBAR PRIMERA</button>
+      <button class="btn btn-pink" onclick="rechazarSolicitud()">✗ RECHAZAR PRIMERA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SEC 09 — USUARIOS PENDIENTES ASIGNACIÓN DEPTO  -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="seccion" id="sec-pendientes">
+  <div class="sec-header">
+    <div class="sec-num">09</div>
+    <div class="sec-title">USUARIOS PENDIENTES // ASIGNACIÓN DEPTO</div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="card">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // USUARIOS SIN DEPARTAMENTO ASIGNADO (SIN-DEP)
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+      <button class="btn btn-cyan" onclick="cargarPendientesDepto()">ACTUALIZAR LISTA</button>
+    </div>
+    <div class="msg" id="pend-msg"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>ESPECIALIDAD</th><th>ASIGNAR DEPTO</th>
+        </tr></thead>
+        <tbody id="tabla-pendientes">
+          <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> PRESIONA ACTUALIZAR PARA CARGAR</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SEC 10 — DIRECTORIO TABLA HASH                 -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="seccion" id="sec-directorio">
+  <div class="sec-header">
+    <div class="sec-num">10</div>
+    <div class="sec-title">DIRECTORIO // TABLA HASH POR TIPO</div>
+    <div class="sec-line"></div>
+  </div>
+  <div class="card">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // BÚSQUEDA INSTANTÁNEA POR TIPO DE USUARIO
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;">
+      <div class="campo" style="margin:0;min-width:200px;">
+        <label>// TIPO DE USUARIO</label>
+        <select id="selectorTipoHash">
+          <option value="">— SELECCIONAR —</option>
+          <option value="TIPO-01">TIPO-01 — Médico General</option>
+          <option value="TIPO-02">TIPO-02 — Médico Especialista / Cirujano</option>
+          <option value="TIPO-03">TIPO-03 — Enfermero/a</option>
+          <option value="TIPO-04">TIPO-04 — Técnico de Laboratorio</option>
+        </select>
+      </div>
+      <button class="btn btn-cyan" style="margin:0;" onclick="buscarPorTipoHash()">CONSULTAR HASH</button>
+    </div>
+    <div class="msg" id="hash-msg"></div>
+    <div id="hash-resultado" style="display:none;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-bottom:8px;" id="hash-total"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>DEPARTAMENTO</th><th>ESPECIALIDAD</th>
+          </tr></thead>
+          <tbody id="tablaHash"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SEC 11 — CARGA RELACIONES GRAFO                -->
+<!-- ═══════════════════════════════════════════════ -->
+<div class="seccion" id="sec-relaciones">
+  <div class="sec-header">
+    <div class="sec-num">11</div>
+    <div class="sec-title">RED DE COLABORACIÓN // GRAFO</div>
+    <div class="sec-line"></div>
+  </div>
+
+  <!-- Carga masiva de relaciones -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // CARGA MASIVA DE RELACIONES (JSON)
+    </div>
+    <div class="upload-zone" id="drop-zone-rel"
+         ondragover="event.preventDefault()"
+         ondrop="dropRelaciones(event)"
+         onclick="document.getElementById('file-input-rel').click()">
+      <div class="drop-icon">🔗</div>
+      <div class="drop-text" id="drop-text-rel">
+        ARRASTRA TU ARCHIVO JSON DE RELACIONES<br>
+        <span style="font-size:10px;color:var(--dim);">O CLICK PARA SELECCIONAR</span>
+      </div>
+      <input type="file" id="file-input-rel" accept=".json"
+             style="display:none" onchange="seleccionarRelaciones(event)">
+    </div>
+    <div class="msg" id="rel-msg"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-cyan" id="btn-cargar-rel" onclick="cargarRelacionesF3()" disabled>
+        PROCESAR RELACIONES
+      </button>
+      <button class="btn btn-pink" onclick="limpiarRelaciones()">LIMPIAR</button>
+    </div>
+  </div>
+
+  <!-- Vista del grafo: nodos -->
+  <div class="card">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // NODOS DEL GRAFO — PERSONAL REGISTRADO
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+      <button class="btn btn-cyan" onclick="cargarNodosGrafo()">ACTUALIZAR</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>DEPARTAMENTO</th><th>COLABORADORES</th>
+        </tr></thead>
+        <tbody id="tabla-nodos-grafo">
+          <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> PRESIONA ACTUALIZAR</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SEC 12 — REPORTES                         -->
 <!-- ═══════════════════════════════════════════ -->
 <div class="seccion" id="sec-reportes">
   <div class="sec-header">
-    <div class="sec-num">08</div>
+    <div class="sec-num">11</div>
     <div class="sec-title">REPORTES // GRAPHVIZ</div>
     <div class="sec-line"></div>
   </div>
@@ -1178,6 +1349,105 @@
     </div>
 </div>
 
+<!-- REPORTE GRAFO NO DIRIGIDO -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // GRAFO NO DIRIGIDO — RED DE COLABORACIÓN
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#f5e642;">■</span> DEP-ADM &nbsp;
+        <span style="color:#00ffe7;">■</span> DEP-MED &nbsp;
+        <span style="color:#ff2d78;">■</span> DEP-CIR &nbsp;
+        <span style="color:#00ff88;">■</span> DEP-LAB &nbsp;
+        <span style="color:#c77dff;">■</span> DEP-FAR &nbsp;
+        <span style="color:#888888;">■</span> SIN-DEP
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteGrafo()">GENERAR REPORTE GRAFO</button>
+    </div>
+    <div class="msg" id="rpt-grafo-msg"></div>
+    <div id="rpt-grafo-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-grafo-img" style="max-width:100%;border:1px solid var(--border);border-radius:2px;" alt="Grafo Colaboración">
+        <div style="margin-top:10px;">
+            <a id="rpt-grafo-dl" download="grafo_colaboracion.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- REPORTE LISTA DE ADYACENCIA -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // LISTA DE ADYACENCIA — CONEXIONES DEL GRAFO
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteAdyacencia()">GENERAR LISTA ADYACENCIA</button>
+    </div>
+    <div class="msg" id="rpt-ady-msg"></div>
+    <div id="rpt-ady-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-ady-img" style="max-width:100%;border:1px solid var(--border);border-radius:2px;" alt="Lista Adyacencia">
+        <div style="margin-top:10px;">
+            <a id="rpt-ady-dl" download="lista_adyacencia.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- REPORTE TABLA HASH -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // TABLA HASH — DIRECTORIO POR TIPO
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                color:var(--dim);margin-bottom:16px;line-height:2;">
+        <span style="color:#f5e642;">■</span> BUCKET (tipo) &nbsp;
+        <span style="color:#00ff88;">■</span> SLOT OCUPADO &nbsp;
+        <span style="color:#3a6070;">■</span> SLOT VACÍO
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="generarReporteTablaHash()">GENERAR REPORTE HASH</button>
+    </div>
+    <div class="msg" id="rpt-hash-msg"></div>
+    <div id="rpt-hash-wrap" style="display:none;margin-top:16px;">
+        <img id="rpt-hash-img" style="max-width:100%;border:1px solid var(--border);border-radius:2px;" alt="Tabla Hash">
+        <div style="margin-top:10px;">
+            <a id="rpt-hash-dl" download="tabla_hash.png"
+               style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);letter-spacing:1px;text-decoration:none;">
+                > DESCARGAR IMAGEN
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- REPORTE COMPRESIÓN LZW -->
+<div class="card" style="margin-top:16px;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+                letter-spacing:2px;margin-bottom:20px;">
+        // COMPRESIÓN LZW — ARCHIVOS DE CHAT
+    </div>
+    <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn btn-cyan" onclick="cargarReporteLZW()">LISTAR ARCHIVOS .LZW</button>
+    </div>
+    <div class="msg" id="rpt-lzw-msg"></div>
+    <div id="rpt-lzw-wrap" style="display:none;margin-top:16px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-bottom:8px;" id="rpt-lzw-total"></div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ARCHIVO</th><th>TAMAÑO (KB)</th><th>ESTADO</th></tr></thead>
+                <tbody id="tabla-lzw"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -1194,7 +1464,7 @@ function scrollTo(id) {
 }
 
 // Marcar nav activo al scrollear
-const secciones = ['sec-carga','sec-medicamentos','sec-matriz','sec-carga-usuarios','sec-personal','sec-equipos','sec-suministros'];
+const secciones = ['sec-carga','sec-medicamentos','sec-matriz','sec-carga-usuarios','sec-personal','sec-equipos','sec-suministros','sec-solicitudes','sec-pendientes','sec-directorio','sec-relaciones','sec-reportes'];
 window.addEventListener('scroll', () => {
   let actual = secciones[0];
   secciones.forEach(id => {
@@ -2192,6 +2462,338 @@ async function generarReporteProveedores() {
         }
     } catch(e) {
         mostrarMsg('rpt-prov-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+    }
+}
+
+//===============================FASE 3 — FUNCIONES COMPLETAS========================
+
+// ── SOLICITUDES DE REABASTECIMIENTO ──────────────────────────────────────────
+async function cargarSolicitudes() {
+    try {
+        const res  = await fetch('/solicitudes');
+        const data = await res.json();
+        const tbody = document.getElementById('tabla-solicitudes');
+        const cont  = document.getElementById('sol-contador');
+
+        const lista = data.solicitudes || [];
+        cont.textContent = `> TOTAL EN COLA: ${lista.length} SOLICITUDES`;
+
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--dim);padding:20px;">> SIN SOLICITUDES PENDIENTES</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = lista.map((s, i) => `
+            <tr>
+                <td>${s.departamento}</td>
+                <td>${s.tipo_insumo}</td>
+                <td>${s.codigo}</td>
+                <td>${s.cantidad}</td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${s.motivo || '—'}</td>
+                <td>${s.solicitante || '—'}</td>
+                <td style="font-size:9px;">${s.fecha}</td>
+                <td><span class="badge-stock badge-ok">PENDIENTE</span></td>
+            </tr>`
+        ).join('');
+    } catch(e) {
+        mostrarMsg('sol-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+async function aprobarSolicitud() {
+    try {
+        const res  = await fetch('/solicitudes/aprobar', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+        const data = await res.json();
+        mostrarMsg('sol-msg', data.ok ? 'ok' : 'error', '> ' + (data.mensaje||'').toUpperCase());
+        if (data.ok) { cargarSolicitudes(); toast('> SOLICITUD APROBADA', 'ok'); }
+    } catch(e) {
+        mostrarMsg('sol-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+async function rechazarSolicitud() {
+    try {
+        const res  = await fetch('/solicitudes/rechazar', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+        const data = await res.json();
+        mostrarMsg('sol-msg', data.ok ? 'ok' : 'error', '> ' + (data.mensaje||'').toUpperCase());
+        if (data.ok) { cargarSolicitudes(); toast('> SOLICITUD RECHAZADA', 'error'); }
+    } catch(e) {
+        mostrarMsg('sol-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+// ── USUARIOS PENDIENTES ───────────────────────────────────────────────────────
+async function cargarPendientesDepto() {
+    try {
+        const res   = await fetch('/usuarios/pendientes');
+        const data  = await res.json();
+        const tbody = document.getElementById('tabla-pendientes');
+
+        if (!data.usuarios || !data.usuarios.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> SIN USUARIOS PENDIENTES</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.usuarios.map(u => `
+            <tr>
+                <td>${u.colegio}</td>
+                <td>${u.nombre}</td>
+                <td>${u.tipo}</td>
+                <td>${u.espec || '—'}</td>
+                <td>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="sel-${u.colegio}" style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:4px 8px;font-family:'Share Tech Mono',monospace;font-size:10px;border-radius:2px;">
+                            <option value="">— DEPTO —</option>
+                            <option value="DEP-MED">DEP-MED</option>
+                            <option value="DEP-CIR">DEP-CIR</option>
+                            <option value="DEP-LAB">DEP-LAB</option>
+                            <option value="DEP-FAR">DEP-FAR</option>
+                            <option value="DEP-ADM">DEP-ADM</option>
+                        </select>
+                        <button class="btn btn-cyan" style="margin:0;padding:5px 10px;font-size:9px;"
+                                onclick="asignarDeptoAdmin('${u.colegio}')">ASIGNAR</button>
+                    </div>
+                </td>
+            </tr>`
+        ).join('');
+    } catch(e) {
+        mostrarMsg('pend-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+async function asignarDeptoAdmin(colegio) {
+    const sel   = document.getElementById('sel-' + colegio);
+    const depto = sel ? sel.value : '';
+    if (!depto) {
+        mostrarMsg('pend-msg', 'error', '> ERROR :: SELECCIONA UN DEPARTAMENTO');
+        return;
+    }
+    try {
+        const res  = await fetch(`/usuarios/${colegio}/asignar-depto`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ departamento: depto })
+        });
+        const data = await res.json();
+        mostrarMsg('pend-msg', data.ok ? 'ok' : 'error', '> ' + (data.mensaje||'').toUpperCase());
+        if (data.ok) { cargarPendientesDepto(); toast(`> ${colegio} → ${depto}`, 'ok'); }
+    } catch(e) {
+        mostrarMsg('pend-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+// ── TABLA HASH — DIRECTORIO POR TIPO ─────────────────────────────────────────
+async function buscarPorTipoHash() {
+    const tipo = document.getElementById('selectorTipoHash').value;
+    if (!tipo) { mostrarMsg('hash-msg', 'error', '> ERROR :: SELECCIONA UN TIPO'); return; }
+
+    try {
+        const res  = await fetch(`/directorio/${tipo}`);
+        const data = await res.json();
+
+        if (!data.ok) { mostrarMsg('hash-msg', 'error', '> ' + (data.mensaje||'ERROR').toUpperCase()); return; }
+
+        document.getElementById('hash-total').textContent =
+            `> TIPO: ${tipo} — TOTAL: ${data.total} USUARIOS`;
+
+        const tbody = document.getElementById('tablaHash');
+        tbody.innerHTML = (data.usuarios || []).map(u => `
+            <tr>
+                <td>${u.numero_colegio}</td>
+                <td>${u.nombre}</td>
+                <td>${u.tipo}</td>
+                <td>${u.departamento}</td>
+                <td>${u.especialidad || '—'}</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--dim);">SIN REGISTROS</td></tr>';
+
+        document.getElementById('hash-resultado').style.display = 'block';
+        ocultarMsg('hash-msg');
+    } catch(e) {
+        mostrarMsg('hash-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+// ── CARGA DE RELACIONES ───────────────────────────────────────────────────────
+let archivoRelaciones = null;
+
+function dropRelaciones(event) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) procesarArchivoRelaciones(file);
+}
+function seleccionarRelaciones(event) {
+    const file = event.target.files[0];
+    if (file) procesarArchivoRelaciones(file);
+}
+
+function procesarArchivoRelaciones(file) {
+    if (!file.name.endsWith('.json')) {
+        mostrarMsg('rel-msg', 'error', '> ERROR :: EL ARCHIVO DEBE SER .JSON');
+        return;
+    }
+    archivoRelaciones = file;
+    document.getElementById('drop-text-rel').innerHTML =
+        `> ARCHIVO: <span style="color:var(--cyan)">${file.name}</span><br>
+         <span style="font-size:10px;color:var(--dim);">${(file.size/1024).toFixed(1)} KB</span>`;
+    document.getElementById('btn-cargar-rel').disabled = false;
+    ocultarMsg('rel-msg');
+}
+
+async function cargarRelacionesF3() {
+    if (!archivoRelaciones) return;
+    const fd = new FormData();
+    fd.append('json', archivoRelaciones);
+    try {
+        mostrarMsg('rel-msg', 'ok', '> PROCESANDO...');
+        const res  = await fetch('/carga-relaciones', { method:'POST', body:fd });
+        const data = await res.json();
+        if (data.ok) {
+            mostrarMsg('rel-msg', 'ok',
+                `> CARGA EXITOSA :: ${data.aristas_agregadas} ACTIVAS | ${data.pendientes} PENDIENTES | ${data.rechazadas} RECHAZADAS`);
+            toast('> RELACIONES CARGADAS', 'ok');
+            limpiarRelaciones();
+            cargarNodosGrafo();
+        } else {
+            mostrarMsg('rel-msg', 'error', '> ERROR :: ' + (data.mensaje||'').toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rel-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+function limpiarRelaciones() {
+    archivoRelaciones = null;
+    document.getElementById('file-input-rel').value = '';
+    document.getElementById('drop-text-rel').innerHTML =
+        `ARRASTRA TU ARCHIVO JSON DE RELACIONES<br>
+         <span style="font-size:10px;color:var(--dim);">O CLICK PARA SELECCIONAR</span>`;
+    document.getElementById('btn-cargar-rel').disabled = true;
+}
+
+// ── NODOS DEL GRAFO ───────────────────────────────────────────────────────────
+async function cargarNodosGrafo() {
+    try {
+        const [resN, resA] = await Promise.all([
+            fetch('/grafo/nodos'),
+            fetch('/grafo/adyacencia')
+        ]);
+        const nodos = await resN.json();
+        const ady   = await resA.json();
+
+        // Construir mapa de grado (cuántos colaboradores)
+        const grado = {};
+        (ady.adyacencia || []).forEach(n => {
+            grado[n.nodo] = (n.vecinos || []).length;
+        });
+
+        const tbody = document.getElementById('tabla-nodos-grafo');
+        const lista = nodos.nodos || [];
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> SIN NODOS</td></tr>';
+            return;
+        }
+        tbody.innerHTML = lista.map(n => {
+            const g = grado[n.numero_colegio] || 0;
+            return `<tr>
+                <td>${n.numero_colegio}</td>
+                <td>${n.nombre}</td>
+                <td>${n.tipo}</td>
+                <td>${n.depto}</td>
+                <td><span class="badge-stock ${g > 0 ? 'badge-ok' : 'badge-low'}">${g} COLABOR.</span></td>
+            </tr>`;
+        }).join('');
+    } catch(e) { console.error(e); }
+}
+
+// ── REPORTES FASE 3 ───────────────────────────────────────────────────────────
+async function generarReporteGrafo() {
+    mostrarMsg('rpt-grafo-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-grafo-wrap').style.display = 'none';
+    try {
+        const res  = await fetch('/reporte/grafo');
+        const data = await res.json();
+        if (data.ok) {
+            document.getElementById('rpt-grafo-img').src = data.imagen;
+            document.getElementById('rpt-grafo-dl').href = data.imagen;
+            document.getElementById('rpt-grafo-wrap').style.display = 'block';
+            ocultarMsg('rpt-grafo-msg');
+            toast('> REPORTE GRAFO GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-grafo-msg', 'error', '> ERROR :: ' + (data.mensaje||'').toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-grafo-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+async function generarReporteAdyacencia() {
+    mostrarMsg('rpt-ady-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-ady-wrap').style.display = 'none';
+    try {
+        const res  = await fetch('/reporte/adyacencia');
+        const data = await res.json();
+        if (data.ok) {
+            document.getElementById('rpt-ady-img').src = data.imagen;
+            document.getElementById('rpt-ady-dl').href = data.imagen;
+            document.getElementById('rpt-ady-wrap').style.display = 'block';
+            ocultarMsg('rpt-ady-msg');
+            toast('> REPORTE ADYACENCIA GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-ady-msg', 'error', '> ERROR :: ' + (data.mensaje||'').toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-ady-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+async function generarReporteTablaHash() {
+    mostrarMsg('rpt-hash-msg', 'ok', '> GENERANDO REPORTE...');
+    document.getElementById('rpt-hash-wrap').style.display = 'none';
+    try {
+        const res  = await fetch('/reporte/tablahash');
+        const data = await res.json();
+        if (data.ok) {
+            document.getElementById('rpt-hash-img').src = data.imagen;
+            document.getElementById('rpt-hash-dl').href = data.imagen;
+            document.getElementById('rpt-hash-wrap').style.display = 'block';
+            ocultarMsg('rpt-hash-msg');
+            toast('> REPORTE TABLA HASH GENERADO', 'ok');
+        } else {
+            mostrarMsg('rpt-hash-msg', 'error', '> ERROR :: ' + (data.mensaje||'').toUpperCase());
+        }
+    } catch(e) {
+        mostrarMsg('rpt-hash-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+    }
+}
+
+async function cargarReporteLZW() {
+    mostrarMsg('rpt-lzw-msg', 'ok', '> BUSCANDO ARCHIVOS...');
+    try {
+        const res  = await fetch('/reporte/lzw');
+        const data = await res.json();
+        ocultarMsg('rpt-lzw-msg');
+
+        const archivos = data.archivos || [];
+        document.getElementById('rpt-lzw-total').textContent =
+            `> TOTAL ARCHIVOS .LZW EN chats/: ${data.total}`;
+
+        const tbody = document.getElementById('tabla-lzw');
+        if (!archivos.length) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:16px;">> SIN ARCHIVOS .LZW — CIERRA SESIÓN DE ALGÚN USUARIO PARA GENERARLOS</td></tr>';
+        } else {
+            tbody.innerHTML = archivos.map(a => `
+                <tr>
+                    <td>${a.archivo}</td>
+                    <td>${a.tam_kb} KB</td>
+                    <td><span class="badge-stock badge-ok">COMPRIMIDO ✓</span></td>
+                </tr>`
+            ).join('');
+        }
+        document.getElementById('rpt-lzw-wrap').style.display = 'block';
+        toast(`> ${data.total} ARCHIVOS LZW ENCONTRADOS`, 'ok');
+    } catch(e) {
+        mostrarMsg('rpt-lzw-msg', 'error', '> ERROR :: SIN CONEXIÓN');
     }
 }
 

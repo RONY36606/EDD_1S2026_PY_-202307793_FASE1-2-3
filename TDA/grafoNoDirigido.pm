@@ -1,237 +1,205 @@
 package grafoNoDirigido;
-
 use strict;
 use warnings;
-use nodoGrafo;
 
-# Constructor del grafo
 sub new {
     my ($class) = @_;
-    
-    my $self = {
-        nodos => {},  # Hash: clave = numero_colegio, valor = objeto nodoGrafo
-    };
-    
-    bless $self, $class;
-    return $self;
+    return bless {
+        nodos    => {},   # colegio => { nombre, tipo, depto, ... }
+        adyacencia => {}, # colegio => { colegio_vecino => 1 }
+        pendientes => {}, # colegio_receptor => [ { solicitante, estado } ]
+    }, $class;
 }
 
-# Agregar un nodo al grafo
+# ── Agregar nodo (profesional) ──────────────────────────────
 sub agregar_nodo {
-    my ($self, %args) = @_;
-    
-    my $colegio = $args{numero_colegio};
-    
-    # Si ya existe, no hacer nada (o actualizar)
-    if (exists $self->{nodos}{$colegio}) {
-        warn "El nodo $colegio ya existe en el grafo\n";
-        return 0;
-    }
-    
-    # Crear nuevo nodo
-    my $nodo = nodoGrafo->new(%args);
-    $self->{nodos}{$colegio} = $nodo;
-    
-    return 1;
+    my ($self, %datos) = @_;
+    my $col = $datos{numero_colegio} // return;
+    $self->{nodos}{$col} = {
+        nombre => $datos{nombre}       // '',
+        tipo   => $datos{tipo_usuario} // '',
+        depto  => $datos{departamento} // 'SIN-DEP',
+        espec  => $datos{especialidad} // '',
+    };
+    # Inicializar lista de adyacencia si no existe
+    $self->{adyacencia}{$col} //= {};
+    $self->{pendientes}{$col}  //= [];
 }
 
-# Eliminar un nodo del grafo
-sub eliminar_nodo {
-    my ($self, $colegio) = @_;
-    
-    return 0 unless exists $self->{nodos}{$colegio};
-    
-    # Primero eliminar todas las aristas que conectan a este nodo
-    foreach my $vecino ($self->{nodos}{$colegio}->obtener_vecinos()) {
-        $self->eliminar_arista($colegio, $vecino);
-    }
-    
-    # Luego eliminar el nodo
-    delete $self->{nodos}{$colegio};
-    
-    return 1;
+# ── Actualizar departamento de un nodo ──────────────────────
+sub actualizar_depto {
+    my ($self, $col, $depto) = @_;
+    return unless exists $self->{nodos}{$col};
+    $self->{nodos}{$col}{depto} = $depto;
 }
 
-# Agregar una arista (relación de colaboración) - NO DIRIGIDA
+# ── Agregar arista (colaboración ACTIVA) ────────────────────
 sub agregar_arista {
-    my ($self, $colegio_a, $colegio_b) = @_;
-    
-    # Verificar que ambos nodos existan
-    unless (exists $self->{nodos}{$colegio_a} && exists $self->{nodos}{$colegio_b}) {
-        warn "Uno o ambos nodos no existen en el grafo\n";
-        return 0;
-    }
-    
-    # En grafo NO DIRIGIDO: A es vecino de B y B es vecino de A
-    $self->{nodos}{$colegio_a}->agregar_vecino($colegio_b);
-    $self->{nodos}{$colegio_b}->agregar_vecino($colegio_a);
-    
-    return 1;
+    my ($self, $col_a, $col_b) = @_;
+    return unless exists $self->{nodos}{$col_a} && exists $self->{nodos}{$col_b};
+    return if $col_a eq $col_b;
+    $self->{adyacencia}{$col_a}{$col_b} = 1;
+    $self->{adyacencia}{$col_b}{$col_a} = 1;
 }
 
-# Eliminar una arista
+# ── Eliminar arista ─────────────────────────────────────────
 sub eliminar_arista {
-    my ($self, $colegio_a, $colegio_b) = @_;
-    
-    # En grafo NO DIRIGIDO: eliminar en ambas direcciones
-    $self->{nodos}{$colegio_a}->eliminar_vecino($colegio_b) if exists $self->{nodos}{$colegio_a};
-    $self->{nodos}{$colegio_b}->eliminar_vecino($colegio_a) if exists $self->{nodos}{$colegio_b};
-    
-    return 1;
+    my ($self, $col_a, $col_b) = @_;
+    delete $self->{adyacencia}{$col_a}{$col_b};
+    delete $self->{adyacencia}{$col_b}{$col_a};
 }
 
-# Verificar si existe una arista entre dos nodos
+# ── Verificar si existe arista ──────────────────────────────
 sub existe_arista {
-    my ($self, $colegio_a, $colegio_b) = @_;
-    
-    return 0 unless exists $self->{nodos}{$colegio_a};
-    
-    return $self->{nodos}{$colegio_a}->tiene_vecino($colegio_b);
+    my ($self, $col_a, $col_b) = @_;
+    return exists $self->{adyacencia}{$col_a}{$col_b} ? 1 : 0;
 }
 
-# Obtener un nodo específico
-sub obtener_nodo {
-    my ($self, $colegio) = @_;
-    return $self->{nodos}{$colegio};
-}
-
-# Obtener todos los nodos del grafo
-sub obtener_todos_nodos {
-    my ($self) = @_;
-    return values %{$self->{nodos}};
-}
-
-# Contar total de nodos
-sub total_nodos {
-    my ($self) = @_;
-    return scalar keys %{$self->{nodos}};
-}
-
-# Contar total de aristas (cada arista se cuenta 2 veces en lista de adyacencia)
-sub total_aristas {
-    my ($self) = @_;
-    my $total = 0;
-    
-    foreach my $nodo (values %{$self->{nodos}}) {
-        $total += $nodo->grado();
+# ── Obtener colaboradores directos de un nodo ───────────────
+sub colaboradores {
+    my ($self, $col) = @_;
+    return [] unless exists $self->{adyacencia}{$col};
+    my @lista;
+    for my $vecino (keys %{ $self->{adyacencia}{$col} }) {
+        my $info = $self->{nodos}{$vecino} // {};
+        push @lista, {
+            numero_colegio => $vecino,
+            nombre         => $info->{nombre} // '',
+            tipo           => $info->{tipo}   // '',
+            depto          => $info->{depto}  // '',
+            espec          => $info->{espec}  // '',
+        };
     }
-    
-    return $total / 2;  # Dividir entre 2 porque es no dirigido
+    return \@lista;
 }
 
-# BFS de DOS SALTOS (para sugerencias de colaboración)
-# Retorna hash: { colegio => cantidad_de_colaboradores_en_comun }
-sub bfs_dos_saltos {
-    my ($self, $colegio_origen) = @_;
-    
-    my %sugerencias;
-    my %visitados;
-    my @cola;
-    
-    # Marcar origen como visitado
-    $visitados{$colegio_origen} = 1;
-    
-    # Obtener nodo origen
-    my $nodo_origen = $self->{nodos}{$colegio_origen};
-    return \%sugerencias unless $nodo_origen;
-    
-    # PRIMER SALTO: Obtener colaboradores directos (ya son mis vecinos, no sugerirlos)
-    my @colaboradores_directos = $nodo_origen->obtener_vecinos();
-    
-    # Marcar colaboradores directos como visitados (no los sugerimos)
-    foreach my $colab (@colaboradores_directos) {
-        $visitados{$colab} = 1;
-    }
-    
-    # SEGUNDO SALTO: Explorar vecinos de mis colaboradores
-    foreach my $colegio_colab (@colaboradores_directos) {
-        my $nodo_colab = $self->{nodos}{$colegio_colab};
-        next unless $nodo_colab;
-        
-        foreach my $vecino_de_colab ($nodo_colab->obtener_vecinos()) {
-            next if $visitados{$vecino_de_colab};  # Ya visitado o es colaborador directo
-            
-            # Contar cuántos colaboradores en común tienen
-            $sugerencias{$vecino_de_colab}++;
+# ── Sugerencias BFS 2 saltos (amigos de amigos) ─────────────
+sub sugerencias {
+    my ($self, $col) = @_;
+    return [] unless exists $self->{adyacencia}{$col};
+
+    my %directos    = %{ $self->{adyacencia}{$col} };
+    my %conteo;   # posible_col => cuántos colaboradores en común
+
+    for my $d (keys %directos) {
+        for my $dd (keys %{ $self->{adyacencia}{$d} }) {
+            next if $dd eq $col;
+            next if exists $directos{$dd};
+            $conteo{$dd}++;
         }
     }
-    
-    return \%sugerencias;
+
+    my @sugs;
+    for my $posible (sort { $conteo{$b} <=> $conteo{$a} } keys %conteo) {
+        my $info = $self->{nodos}{$posible} // {};
+        push @sugs, {
+            numero_colegio  => $posible,
+            nombre          => $info->{nombre} // '',
+            tipo            => $info->{tipo}   // '',
+            depto           => $info->{depto}  // '',
+            comunes         => $conteo{$posible},
+        };
+    }
+    return \@sugs;
 }
 
-# Generar archivo DOT para Graphviz
-sub generar_dot {
-    my ($self, $archivo_salida) = @_;
-    
-    open(my $fh, '>', $archivo_salida) or die "No se puede crear $archivo_salida: $!";
-    
-    print $fh "graph RedColaboracion {\n";
-    print $fh "    rankdir=LR;\n";           # Left to Right
-    print $fh "    node [shape=circle];\n";  # Nodos circulares
-    
-    # Imprimir nodos con sus atributos
-    foreach my $nodo (values %{$self->{nodos}}) {
-        my $colegio = $nodo->get_numero_colegio();
-        my $nombre = $nodo->get_nombre();
-        my $color = $nodo->get_color_graphviz();
-        my $depto = $nodo->get_departamento();
-        
-        # Etiqueta: nombre + departamento
-        print $fh "    \"$colegio\" [label=\"$nombre\\n$depto\", fillcolor=\"$color\", style=filled];\n";
+# ── Agregar solicitud pendiente ──────────────────────────────
+sub agregar_solicitud {
+    my ($self, $solicitante, $receptor) = @_;
+    # Evitar duplicados
+    for my $s (@{ $self->{pendientes}{$receptor} }) {
+        return if $s->{solicitante} eq $solicitante;
     }
-    
-    # Imprimir aristas (solo una dirección para evitar duplicados en DOT)
-    my %aristas_impresas;
-    foreach my $nodo (values %{$self->{nodos}}) {
-        my $colegio_a = $nodo->get_numero_colegio();
-        
-        foreach my $colegio_b ($nodo->obtener_vecinos()) {
-            # Evitar imprimir la misma arista dos veces
-            my $clave = join('-', sort ($colegio_a, $colegio_b));
-            next if $aristas_impresas{$clave};
-            
-            print $fh "    \"$colegio_a\" -- \"$colegio_b\";\n";
-            $aristas_impresas{$clave} = 1;
-        }
-    }
-    
-    print $fh "}\n";
-    close($fh);
-    
-    # Generar PNG con Graphviz
-    my $archivo_png = $archivo_salida;
-    $archivo_png =~ s/\.dot$/.png/;
-    
-    system("dot -Tpng $archivo_salida -o $archivo_png");
-    
-    return $archivo_png;
+    push @{ $self->{pendientes}{$receptor} }, {
+        solicitante => $solicitante,
+        estado      => 'PENDIENTE',
+    };
 }
 
-# Generar reporte de lista de adyacencia (texto)
-sub reporte_lista_adyacencia {
-    my ($self, $archivo_salida) = @_;
-    
-    open(my $fh, '>', $archivo_salida) or die "No se puede crear $archivo_salida: $!";
-    
-    print $fh "=== LISTA DE ADYACENCIA - RED DE COLABORACIÓN ===\n\n";
-    
-    foreach my $nodo (sort { $a->get_numero_colegio() cmp $b->get_numero_colegio() } 
-                      values %{$self->{nodos}}) {
-        my $colegio = $nodo->get_numero_colegio();
-        my $nombre = $nodo->get_nombre();
-        my @vecinos = $nodo->obtener_vecinos();
-        
-        print $fh "$colegio ($nombre): ";
-        
-        if (@vecinos) {
-            print $fh join(', ', sort @vecinos);
-        } else {
-            print $fh "SIN COLABORADORES";
-        }
-        print $fh "\n";
+# ── Obtener solicitudes recibidas por un usuario ─────────────
+sub solicitudes_recibidas {
+    my ($self, $receptor) = @_;
+    my @lista;
+    for my $s (@{ $self->{pendientes}{$receptor} // [] }) {
+        next unless $s->{estado} eq 'PENDIENTE';
+        my $info = $self->{nodos}{ $s->{solicitante} } // {};
+        push @lista, {
+            solicitante => $s->{solicitante},
+            nombre      => $info->{nombre} // '',
+            tipo        => $info->{tipo}   // '',
+            depto       => $info->{depto}  // '',
+        };
     }
-    
-    close($fh);
+    return \@lista;
+}
+
+# ── Aceptar solicitud ────────────────────────────────────────
+sub aceptar_solicitud {
+    my ($self, $solicitante, $receptor) = @_;
+    for my $s (@{ $self->{pendientes}{$receptor} // [] }) {
+        if ($s->{solicitante} eq $solicitante && $s->{estado} eq 'PENDIENTE') {
+            $s->{estado} = 'ACTIVA';
+            $self->agregar_arista($solicitante, $receptor);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+# ── Rechazar solicitud ───────────────────────────────────────
+sub rechazar_solicitud {
+    my ($self, $solicitante, $receptor) = @_;
+    for my $s (@{ $self->{pendientes}{$receptor} // [] }) {
+        if ($s->{solicitante} eq $solicitante && $s->{estado} eq 'PENDIENTE') {
+            $s->{estado} = 'RECHAZADA';
+            return 1;
+        }
+    }
+    return 0;
+}
+
+# ── Lista de adyacencia completa ─────────────────────────────
+sub lista_adyacencia {
+    my ($self) = @_;
+    my @result;
+    for my $col (sort keys %{ $self->{nodos} }) {
+        my @vecinos = sort keys %{ $self->{adyacencia}{$col} // {} };
+        push @result, {
+            nodo    => $col,
+            nombre  => $self->{nodos}{$col}{nombre} // '',
+            depto   => $self->{nodos}{$col}{depto}  // '',
+            vecinos => \@vecinos,
+        };
+    }
+    return \@result;
+}
+
+# ── Todos los nodos ──────────────────────────────────────────
+sub todos_nodos {
+    my ($self) = @_;
+    my @lista;
+    for my $col (sort keys %{ $self->{nodos} }) {
+        push @lista, {
+            numero_colegio => $col,
+            %{ $self->{nodos}{$col} },
+        };
+    }
+    return \@lista;
+}
+
+# ── Usuarios sin departamento (SIN-DEP) ──────────────────────
+sub nodos_sin_depto {
+    my ($self) = @_;
+    my @lista;
+    for my $col (sort keys %{ $self->{nodos} }) {
+        if (($self->{nodos}{$col}{depto} // 'SIN-DEP') eq 'SIN-DEP') {
+            push @lista, {
+                numero_colegio => $col,
+                %{ $self->{nodos}{$col} },
+            };
+        }
+    }
+    return \@lista;
 }
 
 1;

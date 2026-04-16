@@ -531,11 +531,10 @@ del '/suministros/:codigo' => sub ($c) {
     $c->render(json => { ok=>1, mensaje=>"$codigo eliminado exitosamente" });
 };
 
-#================================== PARA REGISTRAR USUARIOS DENTRO DEL ÁRBOL AVL=================================
+#================================== PARA REGISTRAR USUARIOS DENTRO DEL ÁRBOL AVL - se mejoró para meter usuarios en tabla hash y en el grafo=================================
 post '/carga-usuarios' => sub ($c) {
     my $upload = $c->req->upload('json');
 
-    #siempre se comprueba que el usuario envíe un archivo json
     unless ($upload && $upload->filename =~ /\.json$/i) {
         return $c->render(json => { ok=>0, mensaje=>'El archivo debe ser .json' });
     }
@@ -546,13 +545,11 @@ post '/carga-usuarios' => sub ($c) {
         return $c->render(json => { ok=>0, mensaje=>'JSON malformado: ' . $@ });
     }
 
-    #verificamos la estructura del json, para ver si nos sirve
     unless (ref($data->{usuarios}) eq 'ARRAY') {
         return $c->render(json => { ok=>0, mensaje=>'El JSON debe tener la clave "usuarios" como array' });
     }
 
-    #verificar si hay duplicados y llevar conteo de errores
-    my ($insertados, $duplicados) = (0, 0);
+    my ($insertados, $duplicados, $pendientes) = (0, 0, 0);
     my @errores;
 
     for my $u (@{ $data->{usuarios} }) {
@@ -563,67 +560,62 @@ post '/carga-usuarios' => sub ($c) {
         my $espec = trim($u->{especialidad}    // '');
         my $pass  = $u->{contrasena}           // '';
 
-        # Validar campos obligatorios
-        unless ($col && $nom && $tipo && $depto && $pass) {
+        unless ($col && $nom && $tipo && $pass) {
             push @errores, "$col: campos incompletos, omitido";
             next;
         }
-
-        # Validar tipo de usuario
-        unless ($tipo =~ /^TIPO-0[1-5]$/) {
+        unless ($tipo =~ /^TIPO-0[1-4]$/) {
             push @errores, "$col: tipo '$tipo' no reconocido, omitido";
             next;
         }
-
-        # Validar departamento
-        unless ($depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/) {
-            push @errores, "$col: departamento '$depto' no reconocido, omitido";
-            next;
-        }
-
-        # Verificar duplicado en AVL, si es así, se omite
         if (defined $arbolAVL->buscar($col)) {
             push @errores, "$col ya registrado, omitido";
             $duplicados++;
             next;
         }
 
-        # Insertar en árbol AVL
+        # Departamento puede ser null/vacío → SIN-DEP
+        my $depto_real = ($depto && $depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/)
+                         ? $depto : 'SIN-DEP';
+
         $arbolAVL->insertar($col, {
             nombre => $nom,
             tipo   => $tipo,
-            depto  => $depto,
+            depto  => $depto_real,
             espec  => $espec,
             pass   => $pass,
         });
 
-        #CREAMOS EL NODO DONDE IRÁ EL USUARIO EN EL GRAFO
+        # Insertar en Grafo
         $grafo->agregar_nodo(
             numero_colegio => $col,
-            nombre => $nom,
-            tipo_usuario => $tipo,
-            departamento => $depto || 'SIN-DEP'
+            nombre         => $nom,
+            tipo_usuario   => $tipo,
+            departamento   => $depto_real,
+            especialidad   => $espec,
         );
 
-        #CREAMOS TAMBIÉN EL USUARIO EN LA TABLA DE HASH
-        $grafo->agregar_nodo(
-            numero_colegio => $col,
+        # Insertar en Tabla Hash (solo TIPO-01..04)
+        $tablaHash->insertar($col, {
             nombre => $nom,
-            tipo_usuario => $tipo,
-            departamento => $depto || 'SIN-DEP'
-        );
+            tipo   => $tipo,
+            depto  => $depto_real,
+            espec  => $espec,
+        }) if $tipo =~ /^TIPO-0[1-4]$/;
+
+        $pendientes++ if $depto_real eq 'SIN-DEP';
         $insertados++;
     }
-
-    #Enviar respuesta al JavaScript
 
     return $c->render(json => {
         ok         => 1,
         insertados => $insertados,
         duplicados => $duplicados,
+        pendientes => $pendientes,
         errores    => \@errores,
     });
 };
+
 
 #============================================ESTO ES PARA LA PARTE DEL MANEJO DEL PERSONAL=====================================
 #============================================================================================================================
@@ -1330,7 +1322,663 @@ get '/reporte/proveedores' => sub ($c) {
     use MIME::Base64;
     my $b64 = encode_base64($img_data, '');
     $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+
+# ═══════════════════════════════════════════════════════════════════
+# FASE 3 — RUTAS NUEVAS
+# Grafo No Dirigido, Tabla Hash, LZW Mensajería
+# ═══════════════════════════════════════════════════════════════════
+
+
+
+# ══════════════════════════════════════════════════════
+# CARGA MASIVA DE USUARIOS — v2 (con grafo + hash)
+# ══════════════════════════════════════════════════════
+# NOTA: en Mojolicious::Lite la ÚLTIMA definición de una ruta
+# con la misma firma gana, por lo que esta sobreescribe la de F2.
+
+# ══════════════════════════════════════════════════════
+# CARGA MASIVA DE RELACIONES, las aristas para el grafo
+# ══════════════════════════════════════════════════════
+post '/carga-relaciones' => sub ($c) {
+    my $upload = $c->req->upload('json');
+    unless ($upload && $upload->filename =~ /\.json$/i) {
+        return $c->render(json => { ok=>0, mensaje=>'El archivo debe ser .json' });
+    }
+
+    my $data;
+    eval { $data = decode_json($upload->slurp); };
+    if ($@) {
+        return $c->render(json => { ok=>0, mensaje=>'JSON malformado: ' . $@ });
+    }
+
+    unless (ref($data) eq 'ARRAY') {
+        return $c->render(json => { ok=>0, mensaje=>'El JSON debe ser un array de relaciones' });
+    }
+
+    my ($activas, $pendientes_rel, $rechazadas) = (0, 0, 0);
+    my @errores;
+
+    for my $rel (@$data) {
+        my $sol    = trim($rel->{solicitante} // '');
+        my $rec    = trim($rel->{receptor}    // '');
+        my $estado = uc(trim($rel->{estado}   // ''));
+
+        unless ($sol && $rec) {
+            push @errores, "Relación sin solicitante o receptor, omitida";
+            next;
+        }
+
+        if ($estado eq 'ACTIVA') {
+            $grafo->agregar_arista($sol, $rec);
+            $activas++;
+        } elsif ($estado eq 'PENDIENTE') {
+            $grafo->agregar_solicitud($sol, $rec);
+            $pendientes_rel++;
+        } elsif ($estado eq 'RECHAZADA') {
+            $rechazadas++;
+        } else {
+            push @errores, "Estado '$estado' no reconocido para $sol→$rec";
+        }
+    }
+
+    return $c->render(json => {
+        ok               => 1,
+        aristas_agregadas => $activas,
+        pendientes       => $pendientes_rel,
+        rechazadas       => $rechazadas,
+        errores          => \@errores,
+    });
+};
+
+# ══════════════════════════════════════════════════════
+# GRAFO — Endpoints para el trabajo de los grafos
+# ══════════════════════════════════════════════════════
+
+# Lista de todos los nodos del grafo
+get '/grafo/nodos' => sub ($c) {
+    $c->render(json => { ok=>1, nodos => $grafo->todos_nodos() });
+};
+
+# Colaboradores directos de un usuario
+get '/grafo/colaboradores/:colegio' => sub ($c) {
+    my $col = $c->param('colegio');
+    $c->render(json => { ok=>1, colaboradores => $grafo->colaboradores($col) });
+};
+
+# Sugerencias BFS 2 saltos
+get '/grafo/sugerencias/:colegio' => sub ($c) {
+    my $col = $c->param('colegio');
+    $c->render(json => { ok=>1, sugerencias => $grafo->sugerencias($col) });
+};
+
+# Lista de adyacencia completa
+get '/grafo/adyacencia' => sub ($c) {
+    $c->render(json => { ok=>1, adyacencia => $grafo->lista_adyacencia() });
+};
+
+# Solicitudes recibidas de un usuario
+get '/grafo/solicitudes/:colegio' => sub ($c) {
+    my $col = $c->param('colegio');
+    $c->render(json => { ok=>1, solicitudes => $grafo->solicitudes_recibidas($col) });
+};
+
+# Enviar solicitud de colaboración
+post '/grafo/solicitud' => sub ($c) {
+    my $d    = decode_json($c->req->body);
+    my $sol  = trim($d->{solicitante} // '');
+    my $rec  = trim($d->{receptor}    // '');
+
+    return $c->render(json => { ok=>0, mensaje=>'Datos incompletos' })
+        unless $sol && $rec;
+    return $c->render(json => { ok=>0, mensaje=>'No puedes enviarte una solicitud a ti mismo' })
+        if $sol eq $rec;
+    return $c->render(json => { ok=>0, mensaje=>'Ya son colaboradores' })
+        if $grafo->existe_arista($sol, $rec);
+
+    $grafo->agregar_solicitud($sol, $rec);
+    $c->render(json => { ok=>1, mensaje=>"Solicitud enviada a $rec" });
+};
+
+# Aceptar solicitud
+post '/grafo/aceptar' => sub ($c) {
+    my $d   = decode_json($c->req->body);
+    my $sol = trim($d->{solicitante} // '');
+    my $rec = trim($d->{receptor}    // '');
+
+    my $r = $grafo->aceptar_solicitud($sol, $rec);
+    $c->render(json => { ok=>$r, mensaje=> $r ? "Colaboración aceptada" : "Solicitud no encontrada" });
+};
+
+# Rechazar solicitud
+post '/grafo/rechazar' => sub ($c) {
+    my $d   = decode_json($c->req->body);
+    my $sol = trim($d->{solicitante} // '');
+    my $rec = trim($d->{receptor}    // '');
+
+    my $r = $grafo->rechazar_solicitud($sol, $rec);
+    $c->render(json => { ok=>$r, mensaje=> $r ? "Solicitud rechazada" : "Solicitud no encontrada" });
+};
+
+# ══════════════════════════════════════════════════════
+# USUARIOS PENDIENTES DE ASIGNACIÓN DE DEPTO
+# ══════════════════════════════════════════════════════
+get '/usuarios/pendientes' => sub ($c) {
+    my @lista;
+    for my $entry (@{ $arbolAVL->inorden() }) {
+        next unless ($entry->{valor}{depto} // 'SIN-DEP') eq 'SIN-DEP';
+        push @lista, {
+            colegio => $entry->{clave},
+            nombre  => $entry->{valor}{nombre},
+            tipo    => $entry->{valor}{tipo},
+            espec   => $entry->{valor}{espec} // '',
+        };
+    }
+    $c->render(json => { ok=>1, usuarios=>\@lista });
+};
+
+# Asignar departamento a un usuario (activa acceso)
+put '/usuarios/:colegio/asignar-depto' => sub ($c) {
+    my $col   = $c->param('colegio');
+    my $d     = decode_json($c->req->body);
+    my $depto = trim($d->{departamento} // '');
+
+    return $c->render(json => { ok=>0, mensaje=>'Departamento inválido' })
+        unless $depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/;
+
+    my $u = $arbolAVL->buscar($col);
+    return $c->render(json => { ok=>0, mensaje=>"Usuario $col no encontrado" })
+        unless defined $u;
+
+    $u->{depto} = $depto;
+    $grafo->actualizar_depto($col, $depto);
+
+    $c->render(json => { ok=>1, mensaje=>"Departamento asignado: $depto a $col" });
+};
+
+# ══════════════════════════════════════════════════════
+# TABLA HASH — Directorio por Tipo
+# ══════════════════════════════════════════════════════
+get '/directorio/:tipo' => sub ($c) {
+    my $tipo = uc($c->param('tipo'));
+    return $c->render(json => { ok=>0, mensaje=>'Tipo inválido (TIPO-01 a TIPO-04)' })
+        unless $tipo =~ /^TIPO-0[1-4]$/;
+
+    my $lista = $tablaHash->por_tipo($tipo);
+    $c->render(json => { ok=>1, tipo=>$tipo, usuarios=>$lista, total=>scalar(@$lista) });
+};
+
+# Estado completo de la tabla hash (para reporte)
+get '/directorio/estado' => sub ($c) {
+    $c->render(json => { ok=>1, estado => $tablaHash->estado_tabla() });
+};
+
+# ══════════════════════════════════════════════════════
+# MENSAJERÍA — Chats con  el algoritmo de LZW
+# ══════════════════════════════════════════════════════
+
+# Enviar mensaje entre colaboradores
+post '/chat/mensaje' => sub ($c) {
+    my $d   = decode_json($c->req->body);
+    my $de  = trim($d->{de}   // '');
+    my $para = trim($d->{para} // '');
+    my $msg  = $d->{mensaje}  // '';
+
+    return $c->render(json => { ok=>0, mensaje=>'Datos incompletos' })
+        unless $de && $para && $msg;
+
+    # Verificar que sean colaboradores
+    unless ($grafo->existe_arista($de, $para)) {
+        return $c->render(json => { ok=>0, mensaje=>'Solo puedes enviar mensajes a colaboradores directos' });
+    }
+
+    # Timestamp
+    my @t = localtime;
+    my $ts = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
+        $t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0]);
+
+    my $entrada = { de=>$de, ts=>$ts, msg=>$msg };
+
+    # Guardar en memoria para el remitente
+    $chats_en_memoria{$de}{$para}   //= [];
+    push @{ $chats_en_memoria{$de}{$para} }, $entrada;
+
+    # Guardar en memoria para el receptor también
+    $chats_en_memoria{$para}{$de}   //= [];
+    push @{ $chats_en_memoria{$para}{$de} }, $entrada;
+
+    $c->render(json => { ok=>1, ts=>$ts });
+};
+
+# Obtener historial de conversación (carga desde .lzw si no está en memoria)
+get '/chat/historial/:de/:para' => sub ($c) {
+    my $de   = $c->param('de');
+    my $para = $c->param('para');
+
+    # Si no hay en memoria, intentar cargar del archivo .lzw del usuario
+    unless (exists $chats_en_memoria{$de}) {
+        my $hist = $compresorLZW->cargar_chats($de, 'chats');
+        $chats_en_memoria{$de} = $hist if %$hist;
+    }
+
+    my $msgs = $chats_en_memoria{$de}{$para} // [];
+    $c->render(json => { ok=>1, mensajes=>$msgs });
+};
+
+# Cerrar sesión de usuario → comprimir y guardar chats
+post '/chat/cerrar-sesion' => sub ($c) {
+    my $d   = decode_json($c->req->body);
+    my $col = trim($d->{colegio} // '');
+
+    if (exists $chats_en_memoria{$col}) {
+        eval {
+            $compresorLZW->guardar_chats($col, $chats_en_memoria{$col}, 'chats');
+        };
+        # No eliminamos de memoria inmediatamente en caso de error
+        delete $chats_en_memoria{$col} unless $@;
+    }
+    $c->render(json => { ok=>1, mensaje=>'Sesión cerrada y chats guardados' });
+};
+
+# Cargar chats al iniciar sesión (descomprime .lzw)
+post '/chat/iniciar-sesion' => sub ($c) {
+    my $d   = decode_json($c->req->body);
+    my $col = trim($d->{colegio} // '');
+
+    my $hist = $compresorLZW->cargar_chats($col, 'chats');
+    $chats_en_memoria{$col} = $hist if %$hist;
+
+    $c->render(json => { ok=>1, cargados => scalar(keys %$hist) });
+};
+
+# ══════════════════════════════════════════════════════
+# SOLICITUDES DE REABASTECIMIENTO (Lista Circular)
+# ══════════════════════════════════════════════════════
+post '/solicitudes' => sub ($c) {
+    my $d    = decode_json($c->req->body);
+    my $dep  = trim($d->{departamento}  // '');
+    my $tipo = trim($d->{tipo_insumo}   // '');
+    my $cod  = trim($d->{codigo}        // '');
+    my $cant = $d->{cantidad}           // 0;
+    my $mot  = trim($d->{motivo}        // '');
+    my $sol  = trim($d->{solicitante}   // '');
+
+    return $c->render(json => { ok=>0, mensaje=>'Campos obligatorios faltantes' })
+        unless $dep && $tipo && $cod && $cant > 0;
+
+    my @t = localtime;
+    my $ts = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
+        $t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0]);
+
+    my $sol_obj = solicitudReabastecimiento->new(
+        departamento => $dep,
+        tipoInsumo   => $tipo,
+        codigo       => $cod,
+        cantidad     => $cant,
+        motivo       => $mot,
+        solicitante  => $sol,
+        fecha        => $ts,
+        estado       => 'PENDIENTE',
+    );
+
+    $listaSolicitudes->insertar($sol_obj);
+    $c->render(json => { ok=>1, mensaje=>'Solicitud registrada exitosamente', fecha=>$ts });
+};
+
+get '/solicitudes' => sub ($c) {
+    my @lista;
+    $listaSolicitudes->recorrerAdelante(sub {
+        my $nodo = shift;
+        my $s    = $nodo->valor;
+        push @lista, {
+            departamento => $s->departamento // '',
+            tipo_insumo  => $s->tipoInsumo  // '',
+            codigo       => $s->codigo      // '',
+            cantidad     => $s->cantidad    // 0,
+            motivo       => $s->motivo      // '',
+            solicitante  => $s->solicitante // '',
+            fecha        => $s->fecha       // '',
+            estado       => $s->estado      // 'PENDIENTE',
+        };
+    });
+    $c->render(json => { ok=>1, total=>\scalar(@lista), solicitudes=>\@lista });
+};
+
+# Aprobar primera solicitud de la cola
+post '/solicitudes/aprobar' => sub ($c) {
+    # Obtener primera solicitud
+    my $primera = undef;
+    my $encontrada = 0;
+
+    $listaSolicitudes->recorrerAdelante(sub {
+        my $nodo = shift;
+        unless ($encontrada) {
+            $primera   = $nodo->valor;
+            $encontrada = 1;
+        }
+    });
+
+    return $c->render(json => { ok=>0, mensaje=>'No hay solicitudes pendientes' })
+        unless defined $primera;
+
+    # Verificar stock según tipo
+    my $tipo = uc($primera->tipoInsumo // '');
+    my $cod  = $primera->codigo // '';
+    my $cant = $primera->cantidad // 0;
+
+    if ($tipo eq 'MEDICAMENTO') {
+        my $encontrado = 0;
+        $listaMedicamentos->iterar(sub {
+            my $nodo = shift;
+            my $med  = $nodo->value;
+            if ($med->codigoMedicina eq $cod) {
+                $encontrado = 1;
+                if ($med->cantidadStock >= $cant) {
+                    $med->{cantidadStock} -= $cant;
+                } else {
+                    $encontrado = 2;
+                }
+            }
+        });
+        return $c->render(json => { ok=>0, mensaje=>"Stock insuficiente para $cod" }) if $encontrado == 2;
+        return $c->render(json => { ok=>0, mensaje=>"Medicamento $cod no encontrado" }) if !$encontrado;
+
+    } elsif ($tipo eq 'EQUIPO') {
+        my $eq = $arbolBST->buscar($cod);
+        return $c->render(json => { ok=>0, mensaje=>"Equipo $cod no encontrado" }) unless defined $eq;
+        return $c->render(json => { ok=>0, mensaje=>"Stock insuficiente para $cod" })
+            if $eq->cantidadEquipo < $cant;
+        $eq->{cantidadEquipo} -= $cant;
+
+    } elsif ($tipo eq 'SUMINISTRO') {
+        my $sum = $arbolB->buscar($cod);
+        return $c->render(json => { ok=>0, mensaje=>"Suministro $cod no encontrado" }) unless defined $sum;
+        return $c->render(json => { ok=>0, mensaje=>"Stock insuficiente para $cod" })
+            if $sum->cantidadSuministro < $cant;
+        $sum->{cantidadSuministro} -= $cant;
+    }
+
+    # Eliminar primera solicitud de la lista circular
+    $listaSolicitudes->eliminarPrimero() if $listaSolicitudes->can('eliminarPrimero');
+
+    $c->render(json => { ok=>1, mensaje=>"Solicitud aprobada: $cant unidades de $cod descontadas" });
+};
+
+post '/solicitudes/rechazar' => sub ($c) {
+    my $lista_vacia = 1;
+    $listaSolicitudes->recorrerAdelante(sub { $lista_vacia = 0 });
+
+    return $c->render(json => { ok=>0, mensaje=>'No hay solicitudes pendientes' }) if $lista_vacia;
+
+    $listaSolicitudes->eliminarPrimero() if $listaSolicitudes->can('eliminarPrimero');
+    $c->render(json => { ok=>1, mensaje=>'Solicitud rechazada y eliminada de la cola' });
+};
+
+# ══════════════════════════════════════════════════════
+# REGISTRO INDIVIDUAL CON GRAFO + HASH (override)
+# ══════════════════════════════════════════════════════
+post '/registro-f3' => sub ($c) {
+    my $d       = decode_json($c->req->body);
+    my $colegio = trim($d->{numero_colegio} // '');
+    my $nombre  = trim($d->{nombre}         // '');
+    my $tipo    = trim($d->{tipo_usuario}   // '');
+    my $depto   = trim($d->{departamento}   // '');
+    my $espec   = trim($d->{especialidad}   // '');
+    my $pass    = $d->{contrasena}          // '';
+
+    return $c->render(json => { ok=>0, mensaje=>'Complete todos los campos obligatorios' })
+        unless $colegio && $nombre && $tipo && $pass;
+
+    return $c->render(json => { ok=>0, mensaje=>"Tipo '$tipo' no reconocido" })
+        unless $tipo =~ /^TIPO-0[1-4]$/;
+
+    return $c->render(json => { ok=>0, mensaje=>"$colegio ya está registrado" })
+        if defined $arbolAVL->buscar($colegio);
+
+    my $depto_real = ($depto && $depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/)
+                     ? $depto : 'SIN-DEP';
+
+    $arbolAVL->insertar($colegio, {
+        nombre => $nombre, tipo => $tipo,
+        depto  => $depto_real, espec => $espec, pass => $pass,
+    });
+
+    $grafo->agregar_nodo(
+        numero_colegio => $colegio, nombre => $nombre,
+        tipo_usuario   => $tipo,   departamento => $depto_real,
+        especialidad   => $espec,
+    );
+
+    $tablaHash->insertar($colegio, {
+        nombre => $nombre, tipo => $tipo,
+        depto  => $depto_real, espec => $espec,
+    });
+
+    $c->render(json => { ok=>1, mensaje=>"$colegio registrado exitosamente" });
+};
+
+# ══════════════════════════════════════════════════════
+# REPORTES FASE 3
+# ══════════════════════════════════════════════════════
+
+# ── Reporte Grafo No Dirigido ─────────────────────────
+get '/reporte/grafo' => sub ($c) {
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $dot_file = 'reportes/grafo.dot';
+    my $png_file = 'reportes/grafo.png';
+
+    my @nodos = @{ $grafo->todos_nodos() };
+    unless (@nodos) {
+        return $c->render(json => { ok=>0, mensaje=>'El grafo está vacío' });
+    }
+
+    # Colores por departamento
+    my %color_depto = (
+        'DEP-ADM' => '#f5e642',
+        'DEP-MED' => '#00ffe7',
+        'DEP-CIR' => '#ff2d78',
+        'DEP-LAB' => '#00ff88',
+        'DEP-FAR' => '#c77dff',
+        'SIN-DEP' => '#888888',
+    );
+
+    my @lineas;
+    push @lineas, 'graph RedColaboracion {';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [shape=ellipse, fontname="Courier", fontsize=9,';
+    push @lineas, '          style=filled, fontcolor="#000000", margin="0.15"];';
+    push @lineas, '    edge [color="#00ffe7", fontname="Courier", fontsize=8];';
+    push @lineas, '    overlap=false; splines=true;';
+
+    # Nodos
+    for my $n (@nodos) {
+        my $col   = $n->{numero_colegio} // '';
+        my $nom   = $n->{nombre}         // '';
+        my $depto = $n->{depto}          // 'SIN-DEP';
+        my $tipo  = $n->{tipo}           // '';
+
+        my $color = $color_depto{$depto} // '#888888';
+        (my $id = $col) =~ s/[^a-zA-Z0-9]/_/g;
+        $nom =~ s/"/\\"/g;
+
+        push @lineas,
+            "    $id [label=\"$col\\n$nom\\n$depto\\n$tipo\",".
+            " fillcolor=\"$color\"];";
+    }
+
+    # Aristas (solo una vez por par)
+    my %vistas;
+    my $adyacencia = $grafo->lista_adyacencia();
+    for my $nodo (@$adyacencia) {
+        my $col_a = $nodo->{nodo};
+        (my $id_a = $col_a) =~ s/[^a-zA-Z0-9]/_/g;
+        for my $col_b (@{ $nodo->{vecinos} }) {
+            my $par = join('--', sort($col_a, $col_b));
+            next if $vistas{$par}++;
+            (my $id_b = $col_b) =~ s/[^a-zA-Z0-9]/_/g;
+            push @lineas, "    $id_a -- $id_b;";
+        }
+    }
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+# ── Reporte Lista de Adyacencia ───────────────────────
+get '/reporte/adyacencia' => sub ($c) {
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $dot_file = 'reportes/adyacencia.dot';
+    my $png_file = 'reportes/adyacencia.png';
+
+    my $adyacencia = $grafo->lista_adyacencia();
+    unless (@$adyacencia) {
+        return $c->render(json => { ok=>0, mensaje=>'El grafo está vacío' });
+    }
+
+    my @lineas;
+    push @lineas, 'digraph ListaAdyacencia {';
+    push @lineas, '    rankdir=LR;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [fontname="Courier", fontsize=9, style=filled, margin="0.1"];';
+    push @lineas, '    edge [color="#00ffe7", fontname="Courier", fontsize=8];';
+
+    for my $nodo (@$adyacencia) {
+        my $col  = $nodo->{nodo};
+        my $nom  = $nodo->{nombre} // '';
+        my $dep  = $nodo->{depto}  // '';
+        $nom =~ s/"/\\"/g;
+        (my $id = $col) =~ s/[^a-zA-Z0-9]/_/g;
+
+        push @lineas,
+            "    head_$id [label=\"$col\\n$nom\",".
+            ' shape=record, fillcolor="#071520", color="#00ffe7", fontcolor="#00ffe7"];';
+
+        my @vecinos = @{ $nodo->{vecinos} };
+        for my $i (0 .. $#vecinos) {
+            my $vec = $vecinos[$i];
+            (my $id_v = $vec) =~ s/[^a-zA-Z0-9]/_/g;
+            my $es_ultimo = $i == $#vecinos;
+
+            push @lineas,
+                "    slot_${id}_${id_v} [label=\"$vec\",".
+                " shape=box, fillcolor=\"#0a1f30\", color=\"#00ff88\", fontcolor=\"#00ff88\"];";
+            if ($i == 0) {
+                push @lineas, "    head_$id -> slot_${id}_${id_v};";
+            } else {
+                my $prev = $vecinos[$i-1];
+                (my $id_prev = $prev) =~ s/[^a-zA-Z0-9]/_/g;
+                push @lineas, "    slot_${id}_${id_prev} -> slot_${id}_${id_v};";
+            }
+        }
+        unless (@vecinos) {
+            push @lineas,
+                "    null_$id [label=\"NULL\", shape=plaintext, fontcolor=\"#444444\"];";
+            push @lineas, "    head_$id -> null_$id;";
+        }
+    }
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+# ── Reporte Tabla Hash ────────────────────────────────
+get '/reporte/tablahash' => sub ($c) {
+    my $dot_exe  = 'C:/Program Files/Graphviz/bin/dot.exe';
+    my $dot_file = 'reportes/tablahash.dot';
+    my $png_file = 'reportes/tablahash.png';
+
+    my $estado = $tablaHash->estado_tabla();
+
+    my @lineas;
+    push @lineas, 'digraph TablaHash {';
+    push @lineas, '    rankdir=LR;';
+    push @lineas, '    bgcolor="#040d14";';
+    push @lineas, '    node [fontname="Courier", fontsize=9, style=filled, margin="0.1"];';
+    push @lineas, '    edge [color="#f5e642"];';
+
+    for my $bucket (@$estado) {
+        my $tipo  = $bucket->{tipo};
+        my $total = $bucket->{total};
+        my $col   = $bucket->{colisiones};
+        (my $id   = $tipo) =~ s/-/_/g;
+
+        push @lineas,
+            "    tipo_$id [label=\"$tipo\\ntotal=$total\\ncol=$col\",".
+            ' shape=record, fillcolor="#1a1200", color="#f5e642", fontcolor="#f5e642"];';
+
+        for my $slot (@{ $bucket->{slots} }) {
+            my $si     = $slot->{slot};
+            my $claves = join(', ', @{ $slot->{claves} });
+            my $fill   = @{ $slot->{claves} } ? '"#001a0d"' : '"#071520"';
+            my $bcolor = @{ $slot->{claves} } ? '"#00ff88"' : '"#3a6070"';
+            my $fcolor = @{ $slot->{claves} } ? '"#00ff88"' : '"#3a6070"';
+            my $label  = $claves ? "[$si]\\n$claves" : "[$si] vacío";
+
+            push @lineas,
+                "    slot_${id}_$si [label=\"$label\", shape=box,".
+                " fillcolor=$fill, color=$bcolor, fontcolor=$fcolor];";
+            push @lineas, "    tipo_$id -> slot_${id}_$si;";
+        }
+    }
+
+    push @lineas, '}';
+
+    my $dot_txt = join("\n", @lineas);
+    open(my $fh, '>', $dot_file) or die "No se pudo crear $dot_file: $!";
+    print $fh $dot_txt;
+    close($fh);
+
+    my $ret = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
+    if ($ret != 0 || !-f $png_file) {
+        return $c->render(json => { ok=>0, mensaje=>'Error al generar imagen con Graphviz' });
+    }
+
+    open(my $img, '<:raw', $png_file) or die "No se pudo leer $png_file: $!";
+    my $img_data = do { local $/; <$img> };
+    close($img);
+
+    use MIME::Base64;
+    my $b64 = encode_base64($img_data, '');
+    $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
+
+# ── Reporte Compresión LZW — lista archivos .lzw ─────
+get '/reporte/lzw' => sub ($c) {
+    my $archivos = $compresorLZW->listar_archivos('chats');
+    $c->render(json => { ok=>1, archivos=>$archivos, total=>scalar(@$archivos) });
 };
 
 app->start;
-

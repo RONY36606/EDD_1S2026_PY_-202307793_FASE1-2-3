@@ -1,161 +1,118 @@
 package tablaHash;
-
 use strict;
 use warnings;
-use nodoHash;
+
+# Tamaño de la tabla interna (número de slots por bucket de tipo)
+use constant TABLA_SIZE => 13;   # primo para distribución uniforme
 
 sub new {
     my ($class) = @_;
-    
-    my $self = {
-        buckets => {}, # Hash perl que actuará como nuestros buckets: 'TIPO-01' => nodoHash
-        total_usuarios => 0,
-    };
-    
-    # Inicializamos los 4 buckets requeridos
-    $self->{buckets}{'TIPO-01'} = undef;
-    $self->{buckets}{'TIPO-02'} = undef;
-    $self->{buckets}{'TIPO-03'} = undef;
-    $self->{buckets}{'TIPO-04'} = undef;
-    
-    bless $self, $class;
-    return $self;
-}
-
-# Función Hash simple: Extrae el número del tipo para validar
-# En este caso, como las claves son explícitas (TIPO-XX), la "función hash"
-# es simplemente validar que el bucket exista.
-sub _hash_func {
-    my ($self, $tipo) = @_;
-    return exists $self->{buckets}{$tipo} ? $tipo : undef;
-}
-
-# Agregar usuario a la tabla
-sub agregar {
-    my ($self, $usuario_obj) = @_;
-    
-    my $tipo = $usuario_obj->get_tipo_usuario(); # Asumo que tu clase Usuario tiene este método
-    my $bucket_key = $self->_hash_func($tipo);
-    
-    unless ($bucket_key) {
-        warn "Tipo de usuario no válido para Hash: $tipo\n";
-        return 0;
+    # tabla: { 'TIPO-01' => [ [slot0,...], [slot1,...], ... ], ... }
+    my %tabla;
+    for my $t (qw(TIPO-01 TIPO-02 TIPO-03 TIPO-04)) {
+        # Cada slot es undef o una lista por chaining
+        $tabla{$t} = [ map { [] } 0 .. TABLA_SIZE - 1 ];
     }
-    
-    # Crear nuevo nodo
-    my $nuevo_nodo = nodoHash->new($usuario_obj);
-    
-    # Encadenamiento: Insertar al inicio de la lista del bucket
-    $nuevo_nodo->set_siguiente($self->{buckets}{$bucket_key});
-    $self->{buckets}{$bucket_key} = $nuevo_nodo;
-    
-    $self->{total_usuarios}++;
-    return 1;
+    return bless {
+        tabla    => \%tabla,
+        conteo   => { 'TIPO-01'=>0, 'TIPO-02'=>0, 'TIPO-03'=>0, 'TIPO-04'=>0 },
+        colisiones => { 'TIPO-01'=>0, 'TIPO-02'=>0, 'TIPO-03'=>0, 'TIPO-04'=>0 },
+    }, $class;
 }
 
-# Buscar y devolver lista de usuarios de un tipo específico
-sub buscar_por_tipo {
-    my ($self, $tipo) = @_;
-    
-    my $inicio = $self->{buckets}{$tipo};
-    my @lista_usuarios = ();
-    
-    my $actual = $inicio;
-    while (defined $actual) {
-        push @lista_usuarios, $actual->get_usuario();
-        $actual = $actual->get_siguiente();
+# ── Función hash interna (sobre el número de colegio) ───────
+sub _hash {
+    my ($self, $clave) = @_;
+    my $suma = 0;
+    $suma += ord($_) for split //, $clave;
+    return $suma % TABLA_SIZE;
+}
+
+# ── Insertar usuario ─────────────────────────────────────────
+sub insertar {
+    my ($self, $col, $datos) = @_;
+    my $tipo = $datos->{tipo} // '';
+    return unless exists $self->{tabla}{$tipo};
+
+    my $slot = $self->_hash($col);
+    my $bucket = $self->{tabla}{$tipo}[$slot];
+
+    # Verificar si ya existe (actualizar en su lugar)
+    for my $entry (@$bucket) {
+        if ($entry->{colegio} eq $col) {
+            $entry->{datos} = $datos;
+            return;
+        }
     }
-    
-    return @lista_usuarios;
+
+    # Colisión si el slot ya tenía algún elemento
+    $self->{colisiones}{$tipo}++ if @$bucket > 0;
+
+    push @$bucket, { colegio => $col, datos => $datos };
+    $self->{conteo}{$tipo}++;
 }
 
-# Eliminar un usuario (por número de colegio)
-# Útil si se borra del AVL, debe borrarse aquí también
+# ── Eliminar usuario ─────────────────────────────────────────
 sub eliminar {
-    my ($self, $num_colegio) = @_;
-    
-    # Iterar sobre todos los buckets porque no sabemos de qué tipo es el usuario solo con el colegio
-    foreach my $tipo (keys %{$self->{buckets}}) {
-        my $actual = $self->{buckets}{$tipo};
-        my $anterior = undef;
-        
-        while (defined $actual) {
-            if ($actual->get_usuario()->get_numero_colegio() eq $num_colegio) {
-                # Encontrado, eliminar
-                if ($anterior) {
-                    $anterior->set_siguiente($actual->get_siguiente());
-                } else {
-                    $self->{buckets}{$tipo} = $actual->get_siguiente();
-                }
-                $self->{total_usuarios}--;
-                return 1;
-            }
-            $anterior = $actual;
-            $actual = $actual->get_siguiente();
-        }
+    my ($self, $col, $tipo) = @_;
+    return unless $tipo && exists $self->{tabla}{$tipo};
+
+    my $slot   = $self->_hash($col);
+    my $bucket = $self->{tabla}{$tipo}[$slot];
+    my @nuevo  = grep { $_->{colegio} ne $col } @$bucket;
+
+    if (@nuevo < @$bucket) {
+        $self->{tabla}{$tipo}[$slot] = \@nuevo;
+        $self->{conteo}{$tipo}--;
     }
-    return 0;
 }
 
-# Contar usuarios en un bucket específico
-sub obtener_tamano_bucket {
+# ── Consultar por tipo ───────────────────────────────────────
+sub por_tipo {
     my ($self, $tipo) = @_;
-    return scalar $self->buscar_por_tipo($tipo);
-}
+    return [] unless exists $self->{tabla}{$tipo};
 
-# ==========================================
-# REPORTE GRAPHVIZ 
-# ==========================================
-sub generar_reporte {
-    my ($self, $archivo_salida) = @_;
-    
-    open(my $fh, '>', $archivo_salida) or die "Error creando reporte hash: $!";
-    
-    print $fh "digraph TablaHashReporte {\n";
-    print $fh "    rankdir=TB;\n";
-    print $fh "    node [shape=box, style=filled, fillcolor=\"#f0f0f0\"];\n";
-    
-    # Nodo central "Tabla Hash"
-    print $fh "    Tabla [label=\"Tabla Hash\\n(Total Usuarios: $self->{total_usuarios})\", shape=ellipse, fillcolor=\"#333333\", fontcolor=white];\n\n";
-    
-    # Iterar buckets
-    foreach my $tipo (sort keys %{$self->{buckets}}) {
-        my $inicio = $self->{buckets}{$tipo};
-        my $contador = 0;
-        
-        # Nodo del Bucket
-        print $fh "    Bucket_$tipo [label=\"$tipo\", shape=component, fillcolor=\"#4a90e2\", fontcolor=white];\n";
-        print $fh "    Tabla -> Bucket_$tipo;\n";
-        
-        my $actual = $inicio;
-        my $nodo_anterior_id = "Bucket_$tipo";
-        
-        # Iterar lista enlazada
-        while (defined $actual) {
-            $contador++;
-            my $usuario = $actual->get_usuario();
-            my $id_nodo = "Nodo_${tipo}_${contador}";
-            my $label = $usuario->get_nombre() . "\\n" . $usuario->get_numero_colegio();
-            
-            print $fh "    $id_nodo [label=\"$label\"];\n";
-            print $fh "    $nodo_anterior_id -> $id_nodo;\n";
-            
-            $nodo_anterior_id = $id_nodo;
-            $actual = $actual->get_siguiente();
-        }
-        
-        # Si el bucket está vacío
-        if ($contador == 0) {
-            print $fh "    Empty_$tipo [label=\"VACÍO\", shape=plaintext, fontcolor=\"gray\"];\n";
-            print $fh "    Bucket_$tipo -> Empty_$tipo [style=dashed];\n";
+    my @lista;
+    for my $slot (@{ $self->{tabla}{$tipo} }) {
+        for my $entry (@$slot) {
+            push @lista, {
+                numero_colegio => $entry->{colegio},
+                nombre         => $entry->{datos}{nombre}  // '',
+                tipo           => $entry->{datos}{tipo}    // '',
+                departamento   => $entry->{datos}{depto}   // '',
+                especialidad   => $entry->{datos}{espec}   // '',
+            };
         }
     }
-    
-    print $fh "}\n";
-    close($fh);
-    
-    # Comando para generar PNG
-    system("dot -Tpng $archivo_salida -o ${archivo_salida}.png");
+    # Ordenar por nombre
+    return [ sort { $a->{nombre} cmp $b->{nombre} } @lista ];
+}
+
+# ── Estado interno de la tabla (para el reporte) ─────────────
+sub estado_tabla {
+    my ($self) = @_;
+    my @resultado;
+    for my $tipo (qw(TIPO-01 TIPO-02 TIPO-03 TIPO-04)) {
+        my @slots;
+        my $slot_idx = 0;
+        for my $bucket (@{ $self->{tabla}{$tipo} }) {
+            push @slots, {
+                slot    => $slot_idx++,
+                ocupado => scalar(@$bucket),
+                claves  => [ map { $_->{colegio} } @$bucket ],
+            };
+        }
+        push @resultado, {
+            tipo       => $tipo,
+            total      => $self->{conteo}{$tipo} // 0,
+            colisiones => $self->{colisiones}{$tipo} // 0,
+            slots      => \@slots,
+            size       => TABLA_SIZE,
+            ocupacion  => sprintf("%.1f%%",
+                ($self->{conteo}{$tipo} // 0) * 100 / TABLA_SIZE),
+        };
+    }
+    return \@resultado;
 }
 
 1;

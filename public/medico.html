@@ -369,7 +369,10 @@ tr:hover td { background: rgba(0,255,231,0.02); }
   <button class="nav-item active" onclick="irA('sec-medicamentos', this)">02 // MEDICAMENTOS</button>
   <button class="nav-item" onclick="irA('sec-equipos', this)">03 // EQUIPOS</button>
   <button class="nav-item" onclick="irA('sec-suministros', this)">04 // SUMINISTROS</button>
-  <button class="nav-item" onclick="irA('sec-perfil', this)">05 // MI PERFIL</button>
+  <button class="nav-item" onclick="irA('sec-solicitar', this)">05 // SOLICITAR INSUMOS</button>
+  <button class="nav-item" onclick="irA('sec-colaboracion', this)">06 // COLABORACIÓN</button>
+  <button class="nav-item" onclick="irA('sec-chat', this)">07 // MENSAJERÍA</button>
+  <button class="nav-item" onclick="irA('sec-perfil', this)">08 // MI PERFIL</button>
 </div>
 
 <div class="main">
@@ -586,11 +589,184 @@ tr:hover td { background: rgba(0,255,231,0.02); }
   </div>
 
   <!-- ══════════════════════════════════════ -->
-  <!-- SEC 05 — MI PERFIL                    -->
+  <!-- SEC 05 — SOLICITAR INSUMOS            -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-solicitar">
+    <div class="sec-header">
+      <div class="sec-num">05</div>
+      <div class="sec-title">SOLICITAR INSUMOS // REABASTECIMIENTO</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+        // FORMULARIO DE SOLICITUD FORMAL
+      </div>
+      <div class="r-grid">
+        <div class="r-campo">
+          <div class="r-label">// TIPO DE INSUMO</div>
+          <select id="sol-tipo" style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;border-radius:2px;">
+            <option value="">— SELECCIONAR —</option>
+            <option value="MEDICAMENTO">MEDICAMENTO</option>
+            <option value="EQUIPO">EQUIPO</option>
+            <option value="SUMINISTRO">SUMINISTRO</option>
+          </select>
+        </div>
+        <div class="r-campo">
+          <div class="r-label">// CÓDIGO DEL ÍTEM *</div>
+          <input type="text" id="sol-codigo" placeholder="MED001 / EQU001 / SUM001" spellcheck="false"
+                 style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;border-radius:2px;">
+        </div>
+        <div class="r-campo">
+          <div class="r-label">// CANTIDAD REQUERIDA *</div>
+          <input type="number" id="sol-cantidad" placeholder="0" min="1"
+                 style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;border-radius:2px;">
+        </div>
+        <div class="r-campo" style="grid-column:1/-1;">
+          <div class="r-label">// MOTIVO CLÍNICO</div>
+          <textarea id="sol-motivo" placeholder="Describe el motivo de la solicitud..." rows="3"
+                    style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;border-radius:2px;resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="msg" id="sol-usr-msg" style="margin-top:12px;"></div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button class="btn btn-cyan" onclick="enviarSolicitudInsumo()" style="flex:1;">ENVIAR SOLICITUD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 06 — RED DE COLABORACIÓN          -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-colaboracion">
+    <div class="sec-header">
+      <div class="sec-num">06</div>
+      <div class="sec-title">RED DE COLABORACIÓN // GRAFO</div>
+      <div class="sec-line"></div>
+    </div>
+
+    <!-- Mis colaboradores -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+        // MIS COLABORADORES DIRECTOS
+      </div>
+      <button class="btn btn-cyan" style="margin-bottom:16px;" onclick="cargarMisColaboradores()">ACTUALIZAR</button>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>DEPTO</th><th>ACCIÓN</th></tr></thead>
+          <tbody id="tabla-mis-colab">
+            <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:16px;">> PRESIONA ACTUALIZAR</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sugerencias BFS -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+        // SUGERENCIAS DE COLABORACIÓN (BFS 2 SALTOS)
+      </div>
+      <button class="btn btn-cyan" style="margin-bottom:16px;" onclick="cargarSugerencias()">VER SUGERENCIAS</button>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>DEPTO</th><th>EN COMÚN</th><th>ACCIÓN</th></tr></thead>
+          <tbody id="tabla-sugerencias">
+            <tr><td colspan="6" style="text-align:center;color:var(--dim);padding:16px;">> PRESIONA VER SUGERENCIAS</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Enviar solicitud -->
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+        // ENVIAR SOLICITUD DE COLABORACIÓN
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div style="flex:1;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-bottom:4px;">// N° COLEGIO RECEPTOR</div>
+          <input type="text" id="sol-colab-receptor" placeholder="COL-XXXXX" spellcheck="false"
+                 style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;border-radius:2px;">
+        </div>
+        <button class="btn btn-cyan" style="margin:0;" onclick="enviarSolicitudColaboracion()">ENVIAR</button>
+      </div>
+      <div class="msg" id="sol-colab-msg" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Solicitudes recibidas -->
+    <div class="card">
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+        // SOLICITUDES RECIBIDAS
+      </div>
+      <button class="btn btn-cyan" style="margin-bottom:16px;" onclick="cargarSolicitudesRecibidas()">ACTUALIZAR</button>
+      <div class="msg" id="sol-rec-msg"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SOLICITANTE</th><th>NOMBRE</th><th>TIPO</th><th>DEPTO</th><th>ACCIONES</th></tr></thead>
+          <tbody id="tabla-sol-recibidas">
+            <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:16px;">> PRESIONA ACTUALIZAR</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 07 — MENSAJERÍA INTERNA           -->
+  <!-- ══════════════════════════════════════ -->
+  <div class="seccion" id="sec-chat">
+    <div class="sec-header">
+      <div class="sec-num">07</div>
+      <div class="sec-title">MENSAJERÍA INTERNA // LZW</div>
+      <div class="sec-line"></div>
+    </div>
+    <div class="card">
+      <!-- Selector de colaborador -->
+      <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+        // CHAT CON COLABORADORES DIRECTOS
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);margin-bottom:4px;">// COLABORADOR</div>
+          <select id="chat-colaborador"
+                  style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;border-radius:2px;"
+                  onchange="abrirChat()">
+            <option value="">— SELECCIONAR COLABORADOR —</option>
+          </select>
+        </div>
+        <button class="btn btn-cyan" style="margin:0;" onclick="cargarOpcionesChat()">ACTUALIZAR LISTA</button>
+      </div>
+
+      <!-- Área de chat -->
+      <div id="chat-area" style="display:none;">
+        <div id="chat-mensajes" style="
+          background:#040d14; border:1px solid var(--border); border-radius:2px;
+          height:320px; overflow-y:auto; padding:14px;
+          font-family:'Share Tech Mono',monospace; font-size:11px;
+          display:flex; flex-direction:column; gap:8px;
+          margin-bottom:12px;">
+          <div style="color:var(--dim);text-align:center;">// CARGANDO HISTORIAL...</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <input type="text" id="chat-input" placeholder="Escribe tu mensaje..."
+                 style="flex:1;background:#071520;border:1px solid var(--border);color:var(--cyan);
+                        padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:11px;border-radius:2px;"
+                 onkeydown="if(event.key==='Enter') enviarMensaje()">
+          <button class="btn btn-cyan" style="margin:0;" onclick="enviarMensaje()">ENVIAR ›</button>
+        </div>
+      </div>
+      <div id="chat-placeholder" style="text-align:center;color:var(--dim);padding:30px;
+           font-family:'Share Tech Mono',monospace;font-size:11px;">
+        > SELECCIONA UN COLABORADOR PARA INICIAR EL CHAT
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ -->
+  <!-- SEC 08 — MI PERFIL                    -->
   <!-- ══════════════════════════════════════ -->
   <div class="seccion" id="sec-perfil">
     <div class="sec-header">
-      <div class="sec-num">05</div>
+      <div class="sec-num">08</div>
       <div class="sec-title">MI PERFIL // AVL</div>
       <div class="sec-line"></div>
     </div>
@@ -656,6 +832,7 @@ tr:hover td { background: rgba(0,255,231,0.02); }
     </div>
   </div>
 
+
 </div><!-- /main -->
 
 <script>
@@ -698,8 +875,8 @@ function irA(id, btn) {
 }
 
 function logout() {
-  sessionStorage.removeItem('usuario');
-  window.location.href = '/';
+  // El logout real con LZW está en la función async de Fase 3
+  logoutF3();
 }
 
 // ================================ SESIÓN ==================================================
@@ -707,29 +884,29 @@ function logout() {
 let sesion = null;
 
 function cargarSesion() {
-    //el sessionStorage contiene la información de nuestro usuario
   const raw = sessionStorage.getItem('usuario');
   if (!raw) { window.location.href = '/'; return; }
-  sesion = JSON.parse(raw); //obtener la información de la session
+  sesion = JSON.parse(raw);
 
   // Header
   document.getElementById('hdr-nombre').textContent = sesion.nombre || '—';
   document.getElementById('hdr-depto').textContent  = sesion.depto  || '—';
 
-  // Perfil - para el nav
+  // Perfil
   document.getElementById('prf-colegio').value = sesion.colegio || '—';
   document.getElementById('prf-nombre').value  = sesion.nombre  || '—';
   document.getElementById('prf-tipo').value    = sesion.tipo    || '—';
   document.getElementById('prf-depto').value   = sesion.depto   || '—';
   document.getElementById('prf-espec').value   = sesion.espec   || '—';
 
-  // Aplicar permisos por departamento
-    aplicarPermisos(sesion.depto);
+  aplicarPermisos(sesion.depto);
+
+  // Fase 3: cargar chats y colaboradores al iniciar sesión
+  iniciarSesionChats();
+  cargarOpcionesChat();
 }
 
-//======================================= acá vemos qué paneles se mostrarán a cada usuario=======================
 function aplicarPermisos(depto){
-    // tenemos que ver qué contenido verá cada departamento
     const permisos = {
         'DEP-MED': { med: true,  eq: false, sum: true  },
         'DEP-CIR': { med: false, eq: true,  sum: true  },
@@ -738,27 +915,34 @@ function aplicarPermisos(depto){
         'DEP-ADM': { med: true,  eq: true,  sum: true  },
     };
 
-    const p = permisos[depto] || { med: false, eq: false, sum: false }; // ya si no encuentra depto, no verá nada
+    const p = permisos[depto] || { med: false, eq: false, sum: false };
 
-    // Mostrar u ocultar secciones
     document.getElementById('sec-medicamentos').style.display = p.med ? 'block' : 'none';
     document.getElementById('sec-equipos').style.display      = p.eq  ? 'block' : 'none';
     document.getElementById('sec-suministros').style.display  = p.sum ? 'block' : 'none';
 
+    // Fase 3 — secciones siempre disponibles
+    const tieneDepto = depto && depto !== 'SIN-DEP';
+    const secSolicitar    = document.getElementById('sec-solicitar');
+    const secColaboracion = document.getElementById('sec-colaboracion');
+    const secChat         = document.getElementById('sec-chat');
+    if (secSolicitar)    secSolicitar.style.display    = tieneDepto ? 'block' : 'none';
+    if (secColaboracion) secColaboracion.style.display = 'block';
+    if (secChat)         secChat.style.display         = 'block';
 
-    // Actualizar nav, para ocultar botones sin permiso
     const navMed = document.querySelector('[onclick*="sec-medicamentos"]');
     const navEq  = document.querySelector('[onclick*="sec-equipos"]');
     const navSum = document.querySelector('[onclick*="sec-suministros"]');
-     if (navMed) navMed.style.display = p.med ? 'block' : 'none';
-    if (navEq)  navEq.style.display  = p.eq  ? 'block' : 'none';
-    if (navSum) navSum.style.display  = p.sum ? 'block' : 'none';
+    const navSol = document.querySelector('[onclick*="sec-solicitar"]');
+    if (navMed) navMed.style.display = p.med ? '' : 'none';
+    if (navEq)  navEq.style.display  = p.eq  ? '' : 'none';
+    if (navSum) navSum.style.display  = p.sum ? '' : 'none';
+    if (navSol) navSol.style.display  = tieneDepto ? '' : 'none';
 
-    // Hacer scroll a la primera sección visible
     if      (p.med) irA('sec-medicamentos', navMed);
     else if (p.eq)  irA('sec-equipos', navEq);
     else if (p.sum) irA('sec-suministros', navSum);
-    else            irA('sec-perfil', document.querySelector('[onclick*="sec-perfil"]'));
+    else            irA('sec-colaboracion', document.querySelector('[onclick*="sec-colaboracion"]'));
 }
 
 // =============================== MEDICAMENTOS ===========================================
@@ -939,7 +1123,325 @@ const observer = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.seccion').forEach(sec => observer.observe(sec));
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// FASE 3 — FUNCIONES DEL USUARIO MÉDICO
+// ═══════════════════════════════════════════════════════════════
+
+// ── SOLICITAR INSUMOS ─────────────────────────────────────────
+async function enviarSolicitudInsumo() {
+  const tipo     = document.getElementById('sol-tipo').value;
+  const codigo   = document.getElementById('sol-codigo').value.trim().toUpperCase();
+  const cantidad = parseInt(document.getElementById('sol-cantidad').value) || 0;
+  const motivo   = document.getElementById('sol-motivo').value.trim();
+
+  if (!tipo || !codigo || cantidad < 1) {
+    mostrarMsg('sol-usr-msg', 'error', '> ERROR :: TIPO, CÓDIGO Y CANTIDAD SON OBLIGATORIOS');
+    return;
+  }
+
+  try {
+    const res  = await fetch('/solicitudes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        departamento: sesion.depto || 'SIN-DEP',
+        tipo_insumo:  tipo,
+        codigo,
+        cantidad,
+        motivo,
+        solicitante:  sesion.colegio || '',
+      })
+    });
+    const data = await res.json();
+    mostrarMsg('sol-usr-msg', data.ok ? 'ok' : 'error',
+        '> ' + (data.mensaje || '').toUpperCase() + (data.fecha ? ` — ${data.fecha}` : ''));
+    if (data.ok) {
+      document.getElementById('sol-tipo').value     = '';
+      document.getElementById('sol-codigo').value   = '';
+      document.getElementById('sol-cantidad').value = '';
+      document.getElementById('sol-motivo').value   = '';
+      toast('> SOLICITUD ENVIADA AL ADMINISTRADOR', 'ok');
+    }
+  } catch(e) {
+    mostrarMsg('sol-usr-msg', 'error', '> ERROR :: SIN CONEXIÓN CON EL SERVIDOR');
+  }
+}
+
+// ── RED DE COLABORACIÓN ───────────────────────────────────────
+async function cargarMisColaboradores() {
+  if (!sesion.colegio) return;
+  try {
+    const res  = await fetch('/grafo/colaboradores/' + sesion.colegio);
+    const data = await res.json();
+    const tbody = document.getElementById('tabla-mis-colab');
+    const lista = data.colaboradores || [];
+
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:16px;">> SIN COLABORADORES AÚN</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(c => `
+      <tr>
+        <td>${c.numero_colegio}</td>
+        <td>${c.nombre}</td>
+        <td>${c.tipo}</td>
+        <td>${c.depto}</td>
+        <td>
+          <button class="btn btn-cyan" style="margin:0;padding:4px 10px;font-size:9px;"
+                  onclick="iniciarChatCon('${c.numero_colegio}')">CHATEAR</button>
+        </td>
+      </tr>`
+    ).join('');
+    cargarOpcionesChat();
+  } catch(e) { console.error(e); }
+}
+
+async function cargarSugerencias() {
+  if (!sesion.colegio) return;
+  try {
+    const res  = await fetch('/grafo/sugerencias/' + sesion.colegio);
+    const data = await res.json();
+    const tbody = document.getElementById('tabla-sugerencias');
+    const lista = data.sugerencias || [];
+
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dim);padding:16px;">> SIN SUGERENCIAS</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(s => `
+      <tr>
+        <td>${s.numero_colegio}</td>
+        <td>${s.nombre}</td>
+        <td>${s.tipo}</td>
+        <td>${s.depto}</td>
+        <td><span style="color:var(--cyan);font-weight:bold;">${s.comunes}</span></td>
+        <td>
+          <button class="btn btn-cyan" style="margin:0;padding:4px 10px;font-size:9px;"
+                  onclick="enviarSolicitudColaboracionA('${s.numero_colegio}')">CONECTAR</button>
+        </td>
+      </tr>`
+    ).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function enviarSolicitudColaboracion() {
+  const receptor = document.getElementById('sol-colab-receptor').value.trim().toUpperCase();
+  if (!receptor) {
+    mostrarMsg('sol-colab-msg', 'error', '> ERROR :: INGRESA EL N° DE COLEGIO DEL RECEPTOR');
+    return;
+  }
+  await _enviarSolicitudA(receptor, 'sol-colab-msg');
+  document.getElementById('sol-colab-receptor').value = '';
+}
+
+async function enviarSolicitudColaboracionA(receptor) {
+  await _enviarSolicitudA(receptor, 'sol-colab-msg');
+}
+
+async function _enviarSolicitudA(receptor, msgId) {
+  if (!sesion.colegio) return;
+  try {
+    const res  = await fetch('/grafo/solicitud', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ solicitante: sesion.colegio, receptor })
+    });
+    const data = await res.json();
+    mostrarMsg(msgId, data.ok ? 'ok' : 'error', '> ' + (data.mensaje || '').toUpperCase());
+    if (data.ok) toast('> SOLICITUD ENVIADA A ' + receptor, 'ok');
+  } catch(e) {
+    mostrarMsg(msgId, 'error', '> ERROR :: SIN CONEXIÓN');
+  }
+}
+
+async function cargarSolicitudesRecibidas() {
+  if (!sesion.colegio) return;
+  try {
+    const res  = await fetch('/grafo/solicitudes/' + sesion.colegio);
+    const data = await res.json();
+    const tbody = document.getElementById('tabla-sol-recibidas');
+    const lista = data.solicitudes || [];
+
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:16px;">> SIN SOLICITUDES PENDIENTES</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(s => `
+      <tr>
+        <td>${s.solicitante}</td>
+        <td>${s.nombre}</td>
+        <td>${s.tipo}</td>
+        <td>${s.depto}</td>
+        <td style="display:flex;gap:8px;">
+          <button class="btn btn-cyan" style="margin:0;padding:4px 10px;font-size:9px;"
+                  onclick="responderSolicitud('${s.solicitante}','aceptar')">✓ ACEPTAR</button>
+          <button class="btn btn-pink" style="margin:0;padding:4px 10px;font-size:9px;"
+                  onclick="responderSolicitud('${s.solicitante}','rechazar')">✗ RECHAZAR</button>
+        </td>
+      </tr>`
+    ).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function responderSolicitud(solicitante, accion) {
+  if (!sesion.colegio) return;
+  try {
+    const endpoint = accion === 'aceptar' ? '/grafo/aceptar' : '/grafo/rechazar';
+    const res  = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ solicitante, receptor: sesion.colegio })
+    });
+    const data = await res.json();
+    toast('> ' + (data.mensaje || '').toUpperCase(), data.ok ? 'ok' : 'error');
+    if (data.ok) {
+      cargarSolicitudesRecibidas();
+      cargarMisColaboradores();
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── MENSAJERÍA / CHAT ─────────────────────────────────────────
+let chatActual = null;
+
+async function cargarOpcionesChat() {
+  if (!sesion.colegio) return;
+  try {
+    const res  = await fetch('/grafo/colaboradores/' + sesion.colegio);
+    const data = await res.json();
+    const sel  = document.getElementById('chat-colaborador');
+    const prevVal = sel.value;
+    sel.innerHTML = '<option value="">— SELECCIONAR COLABORADOR —</option>';
+    (data.colaboradores || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.numero_colegio;
+      opt.textContent = `${c.numero_colegio} — ${c.nombre}`;
+      sel.appendChild(opt);
+    });
+    if (prevVal) sel.value = prevVal;
+  } catch(e) { console.error(e); }
+}
+
+function iniciarChatCon(colegio) {
+  document.getElementById('chat-colaborador').value = colegio;
+  irA('sec-chat', document.querySelector('[onclick*="sec-chat"]'));
+  abrirChat();
+}
+
+async function abrirChat() {
+  const col = document.getElementById('chat-colaborador').value;
+  if (!col || !sesion.colegio) {
+    document.getElementById('chat-area').style.display = 'none';
+    document.getElementById('chat-placeholder').style.display = 'block';
+    return;
+  }
+  chatActual = col;
+  document.getElementById('chat-area').style.display = 'block';
+  document.getElementById('chat-placeholder').style.display = 'none';
+  await cargarHistorialChat();
+}
+
+async function cargarHistorialChat() {
+  if (!chatActual || !sesion.colegio) return;
+  try {
+    const res  = await fetch(`/chat/historial/${sesion.colegio}/${chatActual}`);
+    const data = await res.json();
+    renderMensajes(data.mensajes || []);
+  } catch(e) { console.error(e); }
+}
+
+function renderMensajes(mensajes) {
+  const cont = document.getElementById('chat-mensajes');
+  if (!mensajes.length) {
+    cont.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">// SIN MENSAJES AÚN</div>';
+    return;
+  }
+  cont.innerHTML = mensajes.map(m => {
+    const esPropio = m.de === sesion.colegio;
+    return `<div style="display:flex;flex-direction:column;align-items:${esPropio ? 'flex-end' : 'flex-start'};">
+      <div style="
+        background:${esPropio ? 'rgba(0,255,231,0.08)' : 'rgba(255,45,120,0.06)'};
+        border:1px solid ${esPropio ? 'rgba(0,255,231,0.2)' : 'rgba(255,45,120,0.15)'};
+        border-radius:4px; padding:8px 12px; max-width:75%;
+        color:${esPropio ? 'var(--cyan)' : '#ff9ab5'};">
+        ${m.msg}
+      </div>
+      <div style="font-size:9px;color:var(--dim);margin-top:3px;">${m.de} · ${m.ts}</div>
+    </div>`;
+  }).join('');
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function enviarMensaje() {
+  const input = document.getElementById('chat-input');
+  const msg   = input.value.trim();
+  if (!msg || !chatActual || !sesion.colegio) return;
+
+  try {
+    const res  = await fetch('/chat/mensaje', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ de: sesion.colegio, para: chatActual, mensaje: msg })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      await cargarHistorialChat();
+    } else {
+      toast('> ' + (data.mensaje || 'ERROR').toUpperCase(), 'error');
+    }
+  } catch(e) { console.error(e); }
+}
+
+// Comprimir chats al cerrar sesión
+async function logoutF3() {
+  if (sesion && sesion.colegio) {
+    try {
+      await fetch('/chat/cerrar-sesion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colegio: sesion.colegio })
+      });
+    } catch(e) {}
+  }
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+
+// Helper toast para medico
+function toast(msg, tipo = 'ok', dur = 4000) {
+  const prev = document.getElementById('toast-med');
+  if (prev) prev.remove();
+  const t = document.createElement('div');
+  t.id = 'toast-med';
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:28px;right:28px;padding:10px 18px;
+    background:#040d14;border:1px solid ${tipo==='ok'?'var(--cyan)':'var(--pink)'};
+    color:${tipo==='ok'?'var(--cyan)':'var(--pink)'};font-family:'Share Tech Mono',monospace;
+    font-size:11px;letter-spacing:1px;border-radius:2px;z-index:9999;
+    opacity:0;transition:opacity 0.3s ease;`;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.style.opacity = '1');
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, dur);
+}
+
+// Cargar chats al iniciar sesión
+async function iniciarSesionChats() {
+  if (!sesion.colegio) return;
+  try {
+    await fetch('/chat/iniciar-sesion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ colegio: sesion.colegio })
+    });
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+
 cargarSesion();
 </script>
 </body>
