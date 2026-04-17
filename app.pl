@@ -115,6 +115,23 @@ post '/registro' => sub ($c) {
         pass   => $pass,
     });
 
+    # Insertar en Grafo
+        $grafo->agregar_nodo(
+            numero_colegio => $colegio,
+            nombre         => $nombre,
+            tipo_usuario   => $tipo,
+            departamento   => $depto,
+            especialidad   => $espec,
+        );
+
+        # Insertar en Tabla Hash (solo TIPO-01..04)
+        $tablaHash->insertar($colegio, {
+            nombre => $nombre,
+            tipo   => $tipo,
+            depto  => $depto,
+            espec  => $espec,
+        }) if $tipo =~ /^TIPO-0[1-4]$/;
+
     return $c->render(json => { ok=>1, mensaje=>"$colegio registrado exitosamente" });
 };
 
@@ -531,90 +548,7 @@ del '/suministros/:codigo' => sub ($c) {
     $c->render(json => { ok=>1, mensaje=>"$codigo eliminado exitosamente" });
 };
 
-#================================== PARA REGISTRAR USUARIOS DENTRO DEL ÁRBOL AVL - se mejoró para meter usuarios en tabla hash y en el grafo=================================
-post '/carga-usuarios' => sub ($c) {
-    my $upload = $c->req->upload('json');
-
-    unless ($upload && $upload->filename =~ /\.json$/i) {
-        return $c->render(json => { ok=>0, mensaje=>'El archivo debe ser .json' });
-    }
-
-    my $data;
-    eval { $data = decode_json($upload->slurp); };
-    if ($@) {
-        return $c->render(json => { ok=>0, mensaje=>'JSON malformado: ' . $@ });
-    }
-
-    unless (ref($data->{usuarios}) eq 'ARRAY') {
-        return $c->render(json => { ok=>0, mensaje=>'El JSON debe tener la clave "usuarios" como array' });
-    }
-
-    my ($insertados, $duplicados, $pendientes) = (0, 0, 0);
-    my @errores;
-
-    for my $u (@{ $data->{usuarios} }) {
-        my $col   = trim($u->{numero_colegio}  // '');
-        my $nom   = trim($u->{nombre_completo} // '');
-        my $tipo  = trim($u->{tipo_usuario}    // '');
-        my $depto = trim($u->{departamento}    // '');
-        my $espec = trim($u->{especialidad}    // '');
-        my $pass  = $u->{contrasena}           // '';
-
-        unless ($col && $nom && $tipo && $pass) {
-            push @errores, "$col: campos incompletos, omitido";
-            next;
-        }
-        unless ($tipo =~ /^TIPO-0[1-4]$/) {
-            push @errores, "$col: tipo '$tipo' no reconocido, omitido";
-            next;
-        }
-        if (defined $arbolAVL->buscar($col)) {
-            push @errores, "$col ya registrado, omitido";
-            $duplicados++;
-            next;
-        }
-
-        # Departamento puede ser null/vacío → SIN-DEP
-        my $depto_real = ($depto && $depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/)
-                         ? $depto : 'SIN-DEP';
-
-        $arbolAVL->insertar($col, {
-            nombre => $nom,
-            tipo   => $tipo,
-            depto  => $depto_real,
-            espec  => $espec,
-            pass   => $pass,
-        });
-
-        # Insertar en Grafo
-        $grafo->agregar_nodo(
-            numero_colegio => $col,
-            nombre         => $nom,
-            tipo_usuario   => $tipo,
-            departamento   => $depto_real,
-            especialidad   => $espec,
-        );
-
-        # Insertar en Tabla Hash (solo TIPO-01..04)
-        $tablaHash->insertar($col, {
-            nombre => $nom,
-            tipo   => $tipo,
-            depto  => $depto_real,
-            espec  => $espec,
-        }) if $tipo =~ /^TIPO-0[1-4]$/;
-
-        $pendientes++ if $depto_real eq 'SIN-DEP';
-        $insertados++;
-    }
-
-    return $c->render(json => {
-        ok         => 1,
-        insertados => $insertados,
-        duplicados => $duplicados,
-        pendientes => $pendientes,
-        errores    => \@errores,
-    });
-};
+#================================== PARA REGISTRAR USUARIOS DENTRO DEL ÁRBOL AVL=================================
 
 
 #============================================ESTO ES PARA LA PARTE DEL MANEJO DEL PERSONAL=====================================
@@ -949,10 +883,7 @@ get '/reporte/arbolb' => sub ($c) {
     print $fh $dot_txt;
     close($fh);
 
-    system("dot -Tpng $dot_file -o $png_file");
     #========================================================================
-    #===================BLOQUE PARA EVITAR ERRORES DE GENERACIÓN DEL ARCHIVO
-    my $dot_exe = 'C:/Program Files/Graphviz/bin/dot.exe';
     my $ret    = system("\"$dot_exe\" -Tpng $dot_file -o $png_file");
 
     if ($ret != 0 || !-f $png_file) {
@@ -1322,6 +1253,7 @@ get '/reporte/proveedores' => sub ($c) {
     use MIME::Base64;
     my $b64 = encode_base64($img_data, '');
     $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
+};
 
 # ═══════════════════════════════════════════════════════════════════
 # FASE 3 — RUTAS NUEVAS
@@ -1329,15 +1261,92 @@ get '/reporte/proveedores' => sub ($c) {
 # ═══════════════════════════════════════════════════════════════════
 
 
+post '/carga-usuarios' => sub ($c) {
+    my $upload = $c->req->upload('json');
+
+    unless ($upload && $upload->filename =~ /\.json$/i) {
+        return $c->render(json => { ok=>0, mensaje=>'El archivo debe ser .json' });
+    }
+
+    my $data;
+    eval { $data = decode_json($upload->slurp); };
+    if ($@) {
+        return $c->render(json => { ok=>0, mensaje=>'JSON malformado: ' . $@ });
+    }
+
+    unless (ref($data->{usuarios}) eq 'ARRAY') {
+        return $c->render(json => { ok=>0, mensaje=>'El JSON debe tener la clave "usuarios" como array' });
+    }
+
+    my ($insertados, $duplicados, $pendientes) = (0, 0, 0);
+    my @errores;
+
+    for my $u (@{ $data->{usuarios} }) {
+        my $col   = trim($u->{numero_colegio}  // '');
+        my $nom   = trim($u->{nombre_completo} // '');
+        my $tipo  = trim($u->{tipo_usuario}    // '');
+        my $depto = trim($u->{departamento}    // '');
+        my $espec = trim($u->{especialidad}    // '');
+        my $pass  = $u->{contrasena}           // '';
+
+        unless ($col && $nom && $tipo && $pass) {
+            push @errores, "$col: campos incompletos, omitido";
+            next;
+        }
+        unless ($tipo =~ /^TIPO-0[1-4]$/) {
+            push @errores, "$col: tipo '$tipo' no reconocido, omitido";
+            next;
+        }
+        if (defined $arbolAVL->buscar($col)) {
+            push @errores, "$col ya registrado, omitido";
+            $duplicados++;
+            next;
+        }
+
+        # Departamento puede ser null/vacío → SIN-DEP
+        my $depto_real = ($depto && $depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$/)
+                         ? $depto : 'SIN-DEP';
+
+        $arbolAVL->insertar($col, {
+            nombre => $nom,
+            tipo   => $tipo,
+            depto  => $depto_real,
+            espec  => $espec,
+            pass   => $pass,
+        });
+
+        # Insertar en Grafo
+        $grafo->agregar_nodo(
+            numero_colegio => $col,
+            nombre         => $nom,
+            tipo_usuario   => $tipo,
+            departamento   => $depto_real,
+            especialidad   => $espec,
+        );
+
+        # Insertar en Tabla Hash (solo TIPO-01..04)
+        $tablaHash->insertar($col, {
+            nombre => $nom,
+            tipo   => $tipo,
+            depto  => $depto_real,
+            espec  => $espec,
+        }) if $tipo =~ /^TIPO-0[1-4]$/;
+
+        $pendientes++ if $depto_real eq 'SIN-DEP';
+        $insertados++;
+    }
+
+    return $c->render(json => {
+        ok         => 1,
+        insertados => $insertados,
+        duplicados => $duplicados,
+        pendientes => $pendientes,
+        errores    => \@errores,
+    });
+};
 
 # ══════════════════════════════════════════════════════
-# CARGA MASIVA DE USUARIOS — v2 (con grafo + hash)
-# ══════════════════════════════════════════════════════
-# NOTA: en Mojolicious::Lite la ÚLTIMA definición de una ruta
-# con la misma firma gana, por lo que esta sobreescribe la de F2.
-
-# ══════════════════════════════════════════════════════
-# CARGA MASIVA DE RELACIONES, las aristas para el grafo
+# CARGA MASIVA DE RELACIONES (Grafo)
 # ══════════════════════════════════════════════════════
 post '/carga-relaciones' => sub ($c) {
     my $upload = $c->req->upload('json');
@@ -1391,7 +1400,7 @@ post '/carga-relaciones' => sub ($c) {
 };
 
 # ══════════════════════════════════════════════════════
-# GRAFO — Endpoints para el trabajo de los grafos
+# GRAFO — Endpoints
 # ══════════════════════════════════════════════════════
 
 # Lista de todos los nodos del grafo
@@ -1513,7 +1522,7 @@ get '/directorio/estado' => sub ($c) {
 };
 
 # ══════════════════════════════════════════════════════
-# MENSAJERÍA — Chats con  el algoritmo de LZW
+# MENSAJERÍA — Chats con LZW
 # ══════════════════════════════════════════════════════
 
 # Enviar mensaje entre colaboradores
@@ -1591,8 +1600,10 @@ post '/chat/iniciar-sesion' => sub ($c) {
 };
 
 # ══════════════════════════════════════════════════════
-# SOLICITUDES DE REABASTECIMIENTO (Lista Circular)
+# SOLICITUDES DE REABASTECIMIENTO (Lista Circular Doble)
 # ══════════════════════════════════════════════════════
+
+# POST: Crear nueva solicitud (Usuario)
 post '/solicitudes' => sub ($c) {
     my $d    = decode_json($c->req->body);
     my $dep  = trim($d->{departamento}  // '');
@@ -1602,13 +1613,16 @@ post '/solicitudes' => sub ($c) {
     my $mot  = trim($d->{motivo}        // '');
     my $sol  = trim($d->{solicitante}   // '');
 
-    return $c->render(json => { ok=>0, mensaje=>'Campos obligatorios faltantes' })
+    # Validaciones estrictas
+    return $c->render(json => { ok=>0, mensaje=>'Campos obligatorios: departamento, tipo, código y cantidad > 0' })
         unless $dep && $tipo && $cod && $cant > 0;
 
+    # Generar timestamp
     my @t = localtime;
     my $ts = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
         $t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0]);
 
+    # Crear objeto solicitud
     my $sol_obj = solicitudReabastecimiento->new(
         departamento => $dep,
         tipoInsumo   => $tipo,
@@ -1620,97 +1634,127 @@ post '/solicitudes' => sub ($c) {
         estado       => 'PENDIENTE',
     );
 
+    # Insertar en lista circular (cola FIFO)
     $listaSolicitudes->insertar($sol_obj);
-    $c->render(json => { ok=>1, mensaje=>'Solicitud registrada exitosamente', fecha=>$ts });
+    
+    $c->render(json => { 
+        ok => 1, 
+        mensaje => 'Solicitud registrada exitosamente', 
+        fecha => $ts,
+        id_solicitud => $sol_obj->get_codigo() . '_' . $ts  # ID único temporal
+    });
 };
 
+# GET: Obtener todas las solicitudes pendientes (Admin)
 get '/solicitudes' => sub ($c) {
+    return $c->render(json => { ok=>0, mensaje=>'No hay solicitudes' })
+        if $listaSolicitudes->esta_vacia();
+        
     my @lista;
     $listaSolicitudes->recorrerAdelante(sub {
         my $nodo = shift;
-        my $s    = $nodo->valor;
+        my $s    = $nodo->valor;  # Objeto solicitudReabastecimiento
+        
         push @lista, {
-            departamento => $s->departamento // '',
-            tipo_insumo  => $s->tipoInsumo  // '',
-            codigo       => $s->codigo      // '',
-            cantidad     => $s->cantidad    // 0,
-            motivo       => $s->motivo      // '',
-            solicitante  => $s->solicitante // '',
-            fecha        => $s->fecha       // '',
-            estado       => $s->estado      // 'PENDIENTE',
+            departamento => $s->get_departamento() // '',
+            tipo_insumo  => $s->get_tipoInsumo()   // '',
+            codigo       => $s->get_codigo()       // '',
+            cantidad     => $s->get_cantidad()     // 0,
+            motivo       => $s->get_motivo()       // '',
+            solicitante  => $s->get_solicitante()  // '',
+            fecha        => $s->get_fecha()        // '',
+            estado       => $s->get_estado()       // 'PENDIENTE',
         };
     });
-    $c->render(json => { ok=>1, total=>\scalar(@lista), solicitudes=>\@lista });
+    
+    $c->render(json => { 
+        ok => 1, 
+        total => scalar(@lista),  # ✅ Sin referencia innecesaria
+        solicitudes => \@lista 
+    });
 };
 
-# Aprobar primera solicitud de la cola
+# POST: Aprobar primera solicitud de la cola (Admin)
 post '/solicitudes/aprobar' => sub ($c) {
-    # Obtener primera solicitud
-    my $primera = undef;
-    my $encontrada = 0;
-
-    $listaSolicitudes->recorrerAdelante(sub {
-        my $nodo = shift;
-        unless ($encontrada) {
-            $primera   = $nodo->valor;
-            $encontrada = 1;
-        }
-    });
-
     return $c->render(json => { ok=>0, mensaje=>'No hay solicitudes pendientes' })
-        unless defined $primera;
+        if $listaSolicitudes->esta_vacia();
 
-    # Verificar stock según tipo
-    my $tipo = uc($primera->tipoInsumo // '');
-    my $cod  = $primera->codigo // '';
-    my $cant = $primera->cantidad // 0;
+    # Obtener primera solicitud (FIFO)
+    my $primera = $listaSolicitudes->{head}->valor;
+    
+    # Extraer datos con getters
+    my $tipo = uc($primera->get_tipoInsumo() // '');
+    my $cod  = $primera->get_codigo() // '';
+    my $cant = $primera->get_cantidad() // 0;
+    my $depto_sol = $primera->get_departamento() // '';
 
+    # Verificar stock según tipo de insumo
+    my $stock_ok = 0;
+    
     if ($tipo eq 'MEDICAMENTO') {
-        my $encontrado = 0;
         $listaMedicamentos->iterar(sub {
             my $nodo = shift;
             my $med  = $nodo->value;
-            if ($med->codigoMedicina eq $cod) {
-                $encontrado = 1;
-                if ($med->cantidadStock >= $cant) {
-                    $med->{cantidadStock} -= $cant;
-                } else {
-                    $encontrado = 2;
-                }
+            if ($med->codigoMedicina eq $cod && $med->cantidadStock >= $cant) {
+                $med->{cantidadStock} -= $cant;  # Descontar stock
+                $stock_ok = 1;
             }
         });
-        return $c->render(json => { ok=>0, mensaje=>"Stock insuficiente para $cod" }) if $encontrado == 2;
-        return $c->render(json => { ok=>0, mensaje=>"Medicamento $cod no encontrado" }) if !$encontrado;
+        return $c->render(json => { ok=>0, mensaje=>"Medicamento $cod no encontrado o stock insuficiente" })
+            unless $stock_ok;
 
     } elsif ($tipo eq 'EQUIPO') {
         my $eq = $arbolBST->buscar($cod);
-        return $c->render(json => { ok=>0, mensaje=>"Equipo $cod no encontrado" }) unless defined $eq;
+        return $c->render(json => { ok=>0, mensaje=>"Equipo $cod no encontrado" }) unless $eq;
         return $c->render(json => { ok=>0, mensaje=>"Stock insuficiente para $cod" })
             if $eq->cantidadEquipo < $cant;
         $eq->{cantidadEquipo} -= $cant;
+        $stock_ok = 1;
 
     } elsif ($tipo eq 'SUMINISTRO') {
         my $sum = $arbolB->buscar($cod);
-        return $c->render(json => { ok=>0, mensaje=>"Suministro $cod no encontrado" }) unless defined $sum;
+        return $c->render(json => { ok=>0, mensaje=>"Suministro $cod no encontrado" }) unless $sum;
         return $c->render(json => { ok=>0, mensaje=>"Stock insuficiente para $cod" })
             if $sum->cantidadSuministro < $cant;
         $sum->{cantidadSuministro} -= $cant;
+        $stock_ok = 1;
+    } else {
+        return $c->render(json => { ok=>0, mensaje=>"Tipo de insumo '$tipo' no reconocido" });
     }
 
-    # Eliminar primera solicitud de la lista circular
-    $listaSolicitudes->eliminarPrimero() if $listaSolicitudes->can('eliminarPrimero');
+    # Actualizar estado de la solicitud a APROBADA (buena práctica)
+    $primera->set_estado('APROBADA') if $primera->can('set_estado');
+    
+    # Eliminar de la cola
+    $listaSolicitudes->eliminarPrimero();
 
-    $c->render(json => { ok=>1, mensaje=>"Solicitud aprobada: $cant unidades de $cod descontadas" });
+    $c->render(json => { 
+        ok => 1, 
+        mensaje => "Solicitud aprobada: $cant unidades de $cod descontadas del inventario",
+        departamento => $depto_sol
+    });
 };
 
+# POST: Rechazar primera solicitud de la cola (Admin)
 post '/solicitudes/rechazar' => sub ($c) {
-    my $lista_vacia = 1;
-    $listaSolicitudes->recorrerAdelante(sub { $lista_vacia = 0 });
+    return $c->render(json => { ok=>0, mensaje=>'No hay solicitudes pendientes' })
+        if $listaSolicitudes->esta_vacia();
 
-    return $c->render(json => { ok=>0, mensaje=>'No hay solicitudes pendientes' }) if $lista_vacia;
-
-    $listaSolicitudes->eliminarPrimero() if $listaSolicitudes->can('eliminarPrimero');
-    $c->render(json => { ok=>1, mensaje=>'Solicitud rechazada y eliminada de la cola' });
+    # Obtener referencia para logging (opcional)
+    my $rechazada = $listaSolicitudes->{head}->valor;
+    my $cod = $rechazada->get_codigo();
+    
+    # Actualizar estado antes de eliminar (auditoría)
+    $rechazada->set_estado('RECHAZADA') if $rechazada->can('set_estado');
+    
+    # Eliminar de la cola
+    $listaSolicitudes->eliminarPrimero();
+    
+    $c->render(json => { 
+        ok => 1, 
+        mensaje => "Solicitud de $cod rechazada y eliminada de la cola",
+        codigo => $cod
+    });
 };
 
 # ══════════════════════════════════════════════════════

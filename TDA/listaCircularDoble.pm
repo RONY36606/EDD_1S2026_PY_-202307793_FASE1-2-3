@@ -65,4 +65,40 @@ sub recorrerAtras{
 
 sub size { $_[0]->{size} } 
 
+# ==========================================
+# ELIMINAR PRIMER NODO (Para solicitudes aprobadas/rechazadas)
+# ==========================================
+sub eliminarPrimero {
+    my ($self) = @_;
+    
+    return undef unless $self->{head};  # Lista vacía
+    
+    my $eliminado = $self->{head};
+    
+    if ($self->{size} == 1) {
+        # Único nodo: la lista queda vacía
+        $self->{head} = undef;
+    } else {
+        # Múltiples nodos: reconectar tail <-> nuevo head
+        my $tail = $self->obtener_tail();
+        $self->{head} = $self->{head}->siguiente();
+        $self->{head}->set_anterior($tail);
+        $tail->set_siguiente($self->{head});
+    }
+    
+    $self->{size}--;
+    $eliminado->set_siguiente(undef);  # Desconectar para evitar referencias colgantes
+    $eliminado->set_anterior(undef);
+    
+    return $eliminado;  # Retorna el nodo eliminado (útil para logging)
+}
+
+# ==========================================
+# VERIFICAR SI LA LISTA ESTÁ VACÍA (Helper útil)
+# ==========================================
+sub esta_vacia {
+    my ($self) = @_;
+    return $self->{size} == 0;
+}
+
 1;
