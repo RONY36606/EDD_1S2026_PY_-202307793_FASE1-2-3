@@ -1014,7 +1014,7 @@
 <div class="seccion" id="sec-pendientes">
   <div class="sec-header">
     <div class="sec-num">09</div>
-    <div class="sec-title">USUARIOS PENDIENTES // ASIGNACIÓN DEPTO</div>
+    <div class="sec-title">USUARIOS PENDIENTES // ASIGNACIÓN DEPTO // REASIGNAR DEPARTAMENTO</div>
     <div class="sec-line"></div>
   </div>
   <div class="card">
@@ -1022,21 +1022,62 @@
       // USUARIOS SIN DEPARTAMENTO ASIGNADO (SIN-DEP)
     </div>
     <div class="btn-row" style="margin-bottom:16px;">
-      <button class="btn btn-cyan" onclick="cargarPendientesDepto()">ACTUALIZAR LISTA</button>
+      <button onclick="cargarUsuariosSinDepto()" class="btn btn-cyan" style="margin:0;">ACTUALIZAR LISTA</button>
     </div>
     <div class="msg" id="pend-msg"></div>
-    <div class="table-wrap">
+    <div class="table-wrap" style="margin-bottom:16px;">
       <table>
         <thead><tr>
-          <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>ESPECIALIDAD</th><th>ASIGNAR DEPTO</th>
+          <th>N° COLEGIO</th><th>NOMBRE</th><th>TIPO</th><th>ESPECIALIDAD</th>
         </tr></thead>
         <tbody id="tabla-pendientes">
           <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> PRESIONA ACTUALIZAR PARA CARGAR</td></tr>
         </tbody>
       </table>
     </div>
+
+    <div style="font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:16px;">
+      // REASIGNAR - ASIGNAR DEPARTAMENTO A USUARIOS 
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:15px;" class="campo">
+      <input type="text" id="inputBuscarColDepto" placeholder="N° COLEGIO (ej: COL-00051)">
+    <button onclick="buscarUsuarioParaDepto()" class="btn btn-cyan" style="margin:0;">BUSCAR</button>
+  </div>
+
+  <table class="data-table" id="tablaPreviewDepto">
+    <thead>
+      <tr>
+        <th>N° COLEGIO</th>
+        <th>NOMBRE COMPLETO</th>
+        <th>TIPO</th>
+        <th>ESPECIALIDAD</th>
+        <th>DEPARTAMENTO ACTUAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5" style="text-align:center; color:#555;">Ingrese un colegio y presione buscar</td></tr>
+    </tbody>
+  </table>
+
+  <div id="formReasignarDepto" class="campo"  style="display:none; margin-top:15px; padding:15px; border:1px solid #00ffe7; border-radius:5px; background:#040d14;">
+    <label style="color:#00ffe7; display:block; margin-bottom:8px; font-weight:bold;">SELECCIONAR NUEVO DEPARTAMENTO:</label>
+    <select id="selectNuevoDepto" style="width:100%; padding:8px; background:#071520; color:#fff; border:1px solid #00ffe7; border-radius:4px;">
+      <option value="">-- SELECCIONAR --</option>
+      <option value="DEP-MED">DEP-MED — Medicina General</option>
+      <option value="DEP-CIR">DEP-CIR — Cirugía y Quirófanos</option>
+      <option value="DEP-LAB">DEP-LAB — Laboratorio Clínico</option>
+      <option value="DEP-FAR">DEP-FAR — Farmacia Hospitalaria</option>
+      <option value="DEP-ADM">DEP-ADM — Administración General</option>
+      <option value="SIN-DEP">SIN-DEP — Sin Asignar (Pendiente)</option>
+    </select>
+    <BR></BR>
+    <button onclick="confirmarReasignacion()" class="btn btn-pink" style="margin:0;">CONFIRMAR CAMBIO</button>
   </div>
 </div>
+  </div>
+
+  
 
 <!-- ═══════════════════════════════════════════════ -->
 <!-- SEC 10 — DIRECTORIO TABLA HASH                 -->
@@ -2522,63 +2563,62 @@ async function rechazarSolicitud() {
     }
 }
 
-// ── USUARIOS PENDIENTES ───────────────────────────────────────────────────────
-async function cargarPendientesDepto() {
-    try {
-        const res   = await fetch('/usuarios/pendientes');
-        const data  = await res.json();
-        const tbody = document.getElementById('tabla-pendientes');
+function hola(){
+  alert('Hola');
+}
 
-        if (!data.usuarios || !data.usuarios.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;">> SIN USUARIOS PENDIENTES</td></tr>';
+// ── USUARIOS PENDIENTES ───────────────────────────────────────────────────────
+// Declaramos la función como async
+async function cargarUsuariosSinDepto() {
+    const tbody = document.getElementById('tabla-pendientes');
+    const msg   = document.getElementById('pend-msg');
+
+    // 1. Estado visual: "Cargando"
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--cyan); padding:20px;">Cargando usuarios pendientes...</td></tr>`;
+    if (msg) msg.textContent = '';
+
+    try {
+        // 2. Petición al servidor (se detiene aquí hasta recibir respuesta)
+        const respuesta = await fetch('/usuariosD/sin-departamento');
+        
+        // Convertimos la respuesta a JSON (también espera hasta completarse)
+        const data = await respuesta.json();
+
+        // 3. Lógica de respuesta
+        if (!data.ok || !data.usuarios || data.usuarios.length === 0) {
+            // Si no hay pendientes
+            if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--yellow); padding:20px;">No hay usuarios pendientes de asignación</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = data.usuarios.map(u => `
-            <tr>
-                <td>${u.colegio}</td>
-                <td>${u.nombre}</td>
-                <td>${u.tipo}</td>
-                <td>${u.espec || '—'}</td>
-                <td>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <select id="sel-${u.colegio}" style="background:#071520;border:1px solid var(--border);color:var(--cyan);padding:4px 8px;font-family:'Share Tech Mono',monospace;font-size:10px;border-radius:2px;">
-                            <option value="">— DEPTO —</option>
-                            <option value="DEP-MED">DEP-MED</option>
-                            <option value="DEP-CIR">DEP-CIR</option>
-                            <option value="DEP-LAB">DEP-LAB</option>
-                            <option value="DEP-FAR">DEP-FAR</option>
-                            <option value="DEP-ADM">DEP-ADM</option>
-                        </select>
-                        <button class="btn btn-cyan" style="margin:0;padding:5px 10px;font-size:9px;"
-                                onclick="asignarDeptoAdmin('${u.colegio}')">ASIGNAR</button>
-                    </div>
-                </td>
-            </tr>`
-        ).join('');
-    } catch(e) {
-        mostrarMsg('pend-msg', 'error', '> ERROR :: SIN CONEXIÓN');
-    }
-}
+        // Si hay datos, limpiamos tabla
+        if (tbody) tbody.innerHTML = '';
 
-async function asignarDeptoAdmin(colegio) {
-    const sel   = document.getElementById('sel-' + colegio);
-    const depto = sel ? sel.value : '';
-    if (!depto) {
-        mostrarMsg('pend-msg', 'error', '> ERROR :: SELECCIONA UN DEPARTAMENTO');
-        return;
-    }
-    try {
-        const res  = await fetch(`/usuarios/${colegio}/asignar-depto`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ departamento: depto })
+        // 4. Renderizar filas
+        data.usuarios.forEach(u => {
+            const row = `
+                <tr>
+                    <td style="font-family:'Courier',monospace; font-weight:bold; color:var(--cyan);">
+                        ${u.numero_colegio}
+                    </td>
+                    <td>${u.nombre}</td>
+                    <td>${u.tipo}</td>
+                    <td style="color:var(--dim);">${u.especialidad}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
         });
-        const data = await res.json();
-        mostrarMsg('pend-msg', data.ok ? 'ok' : 'error', '> ' + (data.mensaje||'').toUpperCase());
-        if (data.ok) { cargarPendientesDepto(); toast(`> ${colegio} → ${depto}`, 'ok'); }
-    } catch(e) {
-        mostrarMsg('pend-msg', 'error', '> ERROR :: SIN CONEXIÓN');
+
+        // Mensaje opcional
+        if (msg) {
+            msg.textContent = `📋 ${data.total} usuario(s) encontrado(s)`;
+            msg.style.color = 'var(--cyan)';
+        }
+
+    } catch (error) {
+        // 5. MANEJO DE ERRORES (¡Vital para saber qué falla!)
+        console.error("Error al cargar pendientes:", error);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--pink); padding:20px;">Error de conexión (Ver Consola F12)</td></tr>`;
     }
 }
 
@@ -2795,6 +2835,75 @@ async function cargarReporteLZW() {
     } catch(e) {
         mostrarMsg('rpt-lzw-msg', 'error', '> ERROR :: SIN CONEXIÓN');
     }
+}
+
+//============================FUNCIONES PARA LA REASIGMACIÓN DE DEPARTAMENTOS===========================
+let usuarioSeleccionadoDepto = null;
+
+function buscarUsuarioParaDepto() {
+    const colegio = document.getElementById('inputBuscarColDepto').value.trim();
+    if (!colegio) return alert('Ingrese un número de colegio');
+
+    fetch(`/usuarios/${colegio}`)
+        .then(r => r.json())
+        .then(d => {
+            const tbody = document.querySelector('#tablaPreviewDepto tbody');
+            const form  = document.getElementById('formReasignarDepto');
+            
+            if (!d.ok) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ff2d78;">❌ ${d.mensaje}</td></tr>`;
+                form.style.display = 'none';
+                return;
+            }
+
+            // Guardar referencia para el PUT
+            usuarioSeleccionadoDepto = d.numero_colegio;
+            
+            // Color dinámico según estado
+            const deptoActual = d.departamento || 'SIN-DEP';
+            const colorDepto  = (deptoActual === 'SIN-DEP' || !deptoActual) ? '#f5e642' : '#00ffe7';
+
+            tbody.innerHTML = `
+                <tr>
+                    <td>${d.numero_colegio}</td>
+                    <td>${d.nombre}</td>
+                    <td>${d.tipo}</td>
+                    <td>${d.especialidad || 'N/A'}</td>
+                    <td style="color:${colorDepto}; font-weight:bold;">${deptoActual}</td>
+                </tr>`;
+            
+            form.style.display = 'block';
+            document.getElementById('selectNuevoDepto').value = deptoActual;
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error de conexión al buscar usuario');
+        });
+}
+
+function confirmarReasignacion() {
+    if (!usuarioSeleccionadoDepto) return;
+    
+    const nuevoDepto = document.getElementById('selectNuevoDepto').value;
+    if (!nuevoDepto) return alert('Seleccione un departamento válido');
+
+    fetch(`/usuarios/${usuarioSeleccionadoDepto}/depto`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ departamento: nuevoDepto })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) {
+            alert(` ${d.mensaje}\n${d.activo ? 'El usuario ahora tiene acceso al sistema.' : 'El usuario quedará pendiente hasta nueva asignación.'}`);
+            buscarUsuarioParaDepto(); // Refrescar vista
+            const form  = document.getElementById('formReasignarDepto');
+            form.style.display = 'none';
+        } else {
+            alert('Error: ' + d.mensaje);
+        }
+    })
+    .catch(err => console.error(err));
 }
 
 // Al cargar la página

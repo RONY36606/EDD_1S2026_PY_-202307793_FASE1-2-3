@@ -1468,22 +1468,7 @@ post '/grafo/rechazar' => sub ($c) {
     $c->render(json => { ok=>$r, mensaje=> $r ? "Solicitud rechazada" : "Solicitud no encontrada" });
 };
 
-# ══════════════════════════════════════════════════════
-# USUARIOS PENDIENTES DE ASIGNACIÓN DE DEPTO
-# ══════════════════════════════════════════════════════
-get '/usuarios/pendientes' => sub ($c) {
-    my @lista;
-    for my $entry (@{ $arbolAVL->inorden() }) {
-        next unless ($entry->{valor}{depto} // 'SIN-DEP') eq 'SIN-DEP';
-        push @lista, {
-            colegio => $entry->{clave},
-            nombre  => $entry->{valor}{nombre},
-            tipo    => $entry->{valor}{tipo},
-            espec   => $entry->{valor}{espec} // '',
-        };
-    }
-    $c->render(json => { ok=>1, usuarios=>\@lista });
-};
+
 
 # Asignar departamento a un usuario (activa acceso)
 put '/usuarios/:colegio/asignar-depto' => sub ($c) {
@@ -2023,6 +2008,71 @@ get '/reporte/tablahash' => sub ($c) {
 get '/reporte/lzw' => sub ($c) {
     my $archivos = $compresorLZW->listar_archivos('chats');
     $c->render(json => { ok=>1, archivos=>$archivos, total=>scalar(@$archivos) });
+};
+
+
+# ══════════════════════════════════════════════════════
+# REASIGNAR DEPARTAMENTO (Admin -> AVL)
+# ══════════════════════════════════════════════════════
+put '/usuarios/:colegio/depto' => sub ($c) {
+    my $colegio    = uc(trim($c->param('colegio')));
+    my $body       = decode_json($c->req->body);
+    my $nuevo_depto = uc(trim($body->{departamento} // ''));
+
+    # Validar formato de departamento
+    unless ($nuevo_depto =~ /^DEP-(ADM|MED|CIR|LAB|FAR)$|^SIN-DEP$/) {
+        return $c->render(json => { ok=>0, mensaje=>'Departamento no válido' });
+    }
+
+    # Buscar en AVL
+    my $u = $arbolAVL->buscar($colegio);
+    unless (defined $u) {
+        return $c->render(json => { ok=>0, mensaje=>"Usuario $colegio no encontrado" });
+    }
+
+    # Actualizar departamento en el nodo del AVL
+    $u->{depto} = $nuevo_depto;
+
+    $c->render(json => {
+        ok      => 1,
+        mensaje => "Departamento de $colegio actualizado a $nuevo_depto",
+        depto   => $nuevo_depto,
+        activo  => $nuevo_depto ne 'SIN-DEP' ? 1 : 0  # Activa/desactiva acceso
+    });
+};
+
+# ══════════════════════════════════════════════════════
+# USUARIOS SIN DEPARTAMENTO (Solo lectura - Lista simple)
+# ══════════════════════════════════════════════════════
+get '/usuariosD/sin-departamento' => sub ($c) {
+    my $lista = $arbolAVL->inorden;
+    
+    # Filtrar SOLO usuarios con SIN-DEP, null o vacío
+    my @pendientes = grep {
+        my $v = $_->{valor};           # El hash con los datos
+        my $d = $v->{depto} // '';     # Acceder a la clave 'depto'
+        
+        # Debug en consola
+        warn "DEBUG Usuario: " . ($_->{clave}) . " Depto: '$d'\n";
+        
+        $d eq '' || $d eq 'null' || $d eq 'SIN-DEP'
+    } @$lista;
+    
+    warn "DEBUG Total pendientes: " . scalar(@pendientes) . "\n";
+    
+    # Formatear respuesta
+    my @resultado = map {{
+        numero_colegio => $_->{clave},
+        nombre         => $_->{valor}{nombre},
+        tipo           => $_->{valor}{tipo},
+        especialidad   => $_->{valor}{espec} // 'N/A',
+    }} @pendientes;
+    
+    $c->render(json => {
+        ok       => 1,
+        total    => scalar(@resultado),
+        usuarios => \@resultado,
+    });
 };
 
 app->start;
