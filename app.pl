@@ -168,6 +168,47 @@ get '/medicamentos' => sub ($c) {
     $c->render(json => { ok=>1, medicamentos=>\@lista });
 };
 
+#===============================CONSULTA DE MEDICAMENTOS ESPECÍFICOS==========================
+get '/medicamentos/:codigo' => sub ($c){
+    my $codigo_buscar = uc(trim($c->param('codigo')));
+    $codigo_buscar = "MED$codigo_buscar" unless $codigo_buscar =~ /^MED/i;
+
+     my $encontrado = undef;
+    
+    # Recorrer la lista doblemente enlazada para buscar
+    $listaMedicamentos->iterar(sub {
+        my $nodo = shift;
+        my $med  = $nodo->value;
+        
+        if ($med->codigoMedicina eq $codigo_buscar) {
+            $encontrado = $med;
+        }
+    });
+
+     # Si no se encontró
+    unless (defined $encontrado) {
+        return $c->render(json => { 
+            ok => 0, 
+            mensaje => "Medicamento $codigo_buscar no encontrado" 
+        });
+    }
+
+    # Renderizar respuesta con los nombres de clave que espera tu JavaScript
+    $c->render(json => {
+        ok                => 1,
+        codigo            => $encontrado->codigoMedicina,
+        nombre            => $encontrado->nombreComercial,
+        principio_activo  => $encontrado->principioActivo // '—',
+        fabricante        => $encontrado->laboratorioFabricante // '—',
+        cantidad          => $encontrado->cantidadStock // 0,
+        minimo            => $encontrado->nivelMinimoReorden // 0,
+        vence             => $encontrado->fechaVencimiento // '—',
+        precio            => $encontrado->precio // 0,
+    });
+};
+
+#=============================CARGA MASIVA============================================
+
 post '/carga-masiva' => sub ($c) {
     my $upload = $c->req->upload('json');
 
