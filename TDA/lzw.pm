@@ -80,9 +80,9 @@ sub guardar_chats {
     my $codigos = $self->comprimir($texto);
 
     # Escribir archivo .lzw (códigos separados por comas)
-    my $archivo = "$dir/$numero_colegio.lzw";
-    # Sanitizar nombre de archivo
-    $archivo =~ s/[<>:"\/\\|?*]/_/g;
+    # Sanitizar SOLO el nombre del colegio, no el directorio
+    (my $nombre_seguro = $numero_colegio) =~ s/[<>:"\/\\|?*]/_/g;
+    my $archivo = "$dir/$nombre_seguro.lzw";
 
     open(my $fh, '>', $archivo) or die "No se pudo crear $archivo: $!";
     print $fh join(',', @$codigos);
@@ -96,8 +96,9 @@ sub cargar_chats {
     my ($self, $numero_colegio, $dir) = @_;
     $dir //= 'chats';
 
-    my $archivo = "$dir/$numero_colegio.lzw";
-    $archivo =~ s/[<>:"\/\\|?*]/_/g;
+    # Sanitizar SOLO el nombre del colegio, no el directorio
+    (my $nombre_seguro = $numero_colegio) =~ s/[<>:"\/\\|?*]/_/g;
+    my $archivo = "$dir/$nombre_seguro.lzw";
 
     return {} unless -f $archivo;
 

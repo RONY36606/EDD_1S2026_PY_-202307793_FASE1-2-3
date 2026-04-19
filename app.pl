@@ -1509,79 +1509,131 @@ get '/directorio/estado' => sub ($c) {
 # ══════════════════════════════════════════════════════
 # MENSAJERÍA — Chats con LZW
 # ══════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════
 
 # Enviar mensaje entre colaboradores
 post '/chat/mensaje' => sub ($c) {
-    my $d   = decode_json($c->req->body);
-    my $de  = trim($d->{de}   // '');
-    my $para = trim($d->{para} // '');
-    my $msg  = $d->{mensaje}  // '';
+    my $d    = decode_json($c->req->body);
+    my $de   = trim($d->{de}      // '');
+    my $para = trim($d->{para}    // '');
+    my $msg  = $d->{mensaje}      // '';
 
     return $c->render(json => { ok=>0, mensaje=>'Datos incompletos' })
         unless $de && $para && $msg;
 
-    # Verificar que sean colaboradores
     unless ($grafo->existe_arista($de, $para)) {
         return $c->render(json => { ok=>0, mensaje=>'Solo puedes enviar mensajes a colaboradores directos' });
     }
 
-    # Timestamp
-    my @t = localtime;
+    my @t  = localtime;
     my $ts = sprintf("%04d-%02d-%02d %02d:%02d:%02d",
         $t[5]+1900, $t[4]+1, $t[3], $t[2], $t[1], $t[0]);
 
     my $entrada = { de=>$de, ts=>$ts, msg=>$msg };
 
-    # Guardar en memoria para el remitente
-    $chats_en_memoria{$de}{$para}   //= [];
+    # Solo guardamos en la entrada del REMITENTE.
+    # El receptor cargará el historial desde el archivo del remitente
+    # cuando lo necesite (ver /chat/historial).
+    $chats_en_memoria{$de}{$para} //= [];
     push @{ $chats_en_memoria{$de}{$para} }, $entrada;
-
-    # Guardar en memoria para el receptor también
-    $chats_en_memoria{$para}{$de}   //= [];
-    push @{ $chats_en_memoria{$para}{$de} }, $entrada;
 
     $c->render(json => { ok=>1, ts=>$ts });
 };
 
-# Obtener historial de conversación (carga desde .lzw si no está en memoria)
+# Obtener historial de una conversación entre $de y $para.
+# Combina los mensajes propios de $de + los mensajes que $para
+# tiene guardados hacia $de, los ordena por timestamp, y devuelve
+# la lista unificada (sin duplicados).
 get '/chat/historial/:de/:para' => sub ($c) {
     my $de   = $c->param('de');
     my $para = $c->param('para');
 
-    # Si no hay en memoria, intentar cargar del archivo .lzw del usuario
-    unless (exists $chats_en_memoria{$de}) {
-        my $hist = $compresorLZW->cargar_chats($de, 'chats');
-        $chats_en_memoria{$de} = $hist if %$hist;
-    }
+    # Asegurar que los chats del usuario activo estén en memoria
+    _asegurar_en_memoria($de);
 
-    my $msgs = $chats_en_memoria{$de}{$para} // [];
-    $c->render(json => { ok=>1, mensajes=>$msgs });
+    # Mensajes donde $de es remitente
+    my @propios = @{ $chats_en_memoria{$de}{$para} // [] };
+
+    # Mensajes donde $para es remitente (leídos desde su archivo si no están en memoria)
+    _asegurar_en_memoria($para);
+    my @del_otro = @{ $chats_en_memoria{$para}{$de} // [] };
+
+    # Unir y ordenar por timestamp (sin duplicar: cada mensaje tiene un dueño único)
+    my @todos = sort { $a->{ts} cmp $b->{ts} } (@propios, @del_otro);
+
+    $c->render(json => { ok=>1, mensajes=>\@todos });
 };
 
-# Cerrar sesión de usuario → comprimir y guardar chats
+# Función auxiliar: carga el archivo .lzw de un usuario en memoria
+# SOLO si todavía no ha sido cargado en esta sesión del servidor.
+# Usa REEMPLAZO (no push) para evitar duplicados.
+sub _asegurar_en_memoria {
+    my ($colegio) = @_;
+    # Si ya está marcado como cargado, no hacer nada
+    return if exists $chats_en_memoria{"__cargado_$colegio"};
+
+    my $chats_cargados = $compresorLZW->cargar_chats($colegio, 'chats');
+
+    # REEMPLAZAR (no acumular) para evitar duplicados entre sesiones
+    for my $interlocutor (keys %$chats_cargados) {
+        $chats_en_memoria{$colegio}{$interlocutor} = $chats_cargados->{$interlocutor};
+    }
+
+    # Marcar como cargado para esta sesión del servidor
+    $chats_en_memoria{"__cargado_$colegio"} = 1;
+}
+
+# Cerrar sesión: serializar y comprimir los chats del usuario con LZW.
+# Guarda solo los mensajes PROPIOS del usuario (de los que es remitente).
 post '/chat/cerrar-sesion' => sub ($c) {
     my $d   = decode_json($c->req->body);
     my $col = trim($d->{colegio} // '');
 
-    if (exists $chats_en_memoria{$col}) {
-        eval {
-            $compresorLZW->guardar_chats($col, $chats_en_memoria{$col}, 'chats');
-        };
-        # No eliminamos de memoria inmediatamente en caso de error
-        delete $chats_en_memoria{$col} unless $@;
+    return $c->render(json => { ok=>0, mensaje=>'Usuario no válido' }) unless $col;
+
+    # Construir el hash de chats propios (solo donde $col es remitente)
+    my %chats_propios;
+    for my $interlocutor (keys %{ $chats_en_memoria{$col} // {} }) {
+        next if $interlocutor =~ /^__cargado_/; # ignorar marcas internas
+        $chats_propios{$interlocutor} = $chats_en_memoria{$col}{$interlocutor};
     }
-    $c->render(json => { ok=>1, mensaje=>'Sesión cerrada y chats guardados' });
+
+    eval {
+        $compresorLZW->guardar_chats($col, \%chats_propios, 'chats');
+    };
+
+    if ($@) {
+        warn "Error al guardar chats de $col: $@";
+        return $c->render(json => { ok=>0, mensaje=>"Error al guardar chats: $@" });
+    }
+
+    # Limpiar de memoria (incluida la marca de cargado)
+    delete $chats_en_memoria{$col};
+    delete $chats_en_memoria{"__cargado_$col"};
+
+    $c->render(json => { ok=>1, mensaje=>'Chats guardados y sesión cerrada' });
 };
 
-# Cargar chats al iniciar sesión (descomprime .lzw)
+# Iniciar sesión: cargar chats del usuario desde su archivo .lzw.
 post '/chat/iniciar-sesion' => sub ($c) {
     my $d   = decode_json($c->req->body);
     my $col = trim($d->{colegio} // '');
 
-    my $hist = $compresorLZW->cargar_chats($col, 'chats');
-    $chats_en_memoria{$col} = $hist if %$hist;
+    return $c->render(json => { ok=>0, mensaje=>'Usuario no válido' }) unless $col;
 
-    $c->render(json => { ok=>1, cargados => scalar(keys %$hist) });
+    # Forzar recarga limpia: borrar marca de cargado si existía
+    delete $chats_en_memoria{"__cargado_$col"};
+    delete $chats_en_memoria{$col};
+
+    _asegurar_en_memoria($col);
+
+    my $total = scalar grep { !/^__/ } keys %{ $chats_en_memoria{$col} // {} };
+    $c->render(json => { ok=>1, cargados=>$total });
+};
+
+get '/reporte/lzw' => sub ($c) {
+    my $archivos = $compresorLZW->listar_archivos('chats');
+    $c->render(json => { ok=>1, archivos=>$archivos, total=>scalar(@$archivos) });
 };
 
 # ══════════════════════════════════════════════════════
@@ -2004,11 +2056,6 @@ get '/reporte/tablahash' => sub ($c) {
     $c->render(json => { ok=>1, imagen=>"data:image/png;base64,$b64" });
 };
 
-# ── Reporte Compresión LZW — lista archivos .lzw ─────
-get '/reporte/lzw' => sub ($c) {
-    my $archivos = $compresorLZW->listar_archivos('chats');
-    $c->render(json => { ok=>1, archivos=>$archivos, total=>scalar(@$archivos) });
-};
 
 
 # ══════════════════════════════════════════════════════

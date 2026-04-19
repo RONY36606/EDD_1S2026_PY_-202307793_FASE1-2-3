@@ -1350,11 +1350,15 @@ async function cargarHistorialChat() {
     const res  = await fetch(`/chat/historial/${sesion.colegio}/${chatActual}`);
     const data = await res.json();
     renderMensajes(data.mensajes || []);
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    console.error('Error cargando historial:', e);
+  }
 }
 
 function renderMensajes(mensajes) {
   const cont = document.getElementById('chat-mensajes');
+  // Siempre limpiar antes de renderizar para evitar duplicados visuales
+  cont.innerHTML = '';
   if (!mensajes.length) {
     cont.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">// SIN MENSAJES AÚN</div>';
     return;
@@ -1389,6 +1393,7 @@ async function enviarMensaje() {
     const data = await res.json();
     if (data.ok) {
       input.value = '';
+      // Recargar historial completo (el backend combina propios + del otro)
       await cargarHistorialChat();
     } else {
       toast('> ' + (data.mensaje || 'ERROR').toUpperCase(), 'error');
@@ -1396,16 +1401,20 @@ async function enviarMensaje() {
   } catch(e) { console.error(e); }
 }
 
-// Comprimir chats al cerrar sesión
+// Cerrar sesión: guarda chats con LZW ANTES de redirigir
 async function logoutF3() {
   if (sesion && sesion.colegio) {
     try {
+      // Usamos keepalive para que el fetch no se cancele al cambiar de página
       await fetch('/chat/cerrar-sesion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ colegio: sesion.colegio })
+        body: JSON.stringify({ colegio: sesion.colegio }),
+        keepalive: true
       });
-    } catch(e) {}
+    } catch(e) {
+      console.error('Error al cerrar sesión con LZW:', e);
+    }
   }
   sessionStorage.clear();
   window.location.href = '/';
